@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { Post, BusinessProfile } from './types';
+import { Post, BusinessProfile, User } from './types';
 import Header from './components/Header';
 import PostCreator from './components/PostCreator';
 import PostPreview from './components/PostPreview';
@@ -8,11 +8,15 @@ import BusinessProfileSetup from './components/BusinessProfileSetup';
 import ReviewAssistant from './components/ReviewAssistant';
 import QnaAssistant from './components/QnaAssistant';
 import ProductAssistant from './components/ProductAssistant';
-import { NeumorphicCard } from './components/NeumorphicCard';
+import Login from './components/Login';
+import Register from './components/Register';
 
 export type View = 'posts' | 'reviews' | 'qna' | 'products';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('isAuthenticated', false);
+  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
+  const [users, setUsers] = useLocalStorage<User[]>('users', []);
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
   const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile', {
     name: '',
@@ -22,6 +26,8 @@ const App: React.FC = () => {
   });
   const [activeView, setActiveView] = useState<View>('posts');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -55,12 +61,31 @@ const App: React.FC = () => {
     setCurrentPost(updatedPost);
   };
   
+  const handleLoginSuccess = (user: User) => {
+    setIsAuthenticated(true);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  if (!isAuthenticated) {
+    if (authView === 'login') {
+      return <Login onLoginSuccess={handleLoginSuccess} onNavigateToRegister={() => setAuthView('register')} />;
+    }
+    return <Register onNavigateToLogin={() => setAuthView('login')} />;
+  }
+
   return (
     <div className="bg-slate-200 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
       <Header 
         activeView={activeView}
         setActiveView={setActiveView}
         onProfileClick={() => setIsProfileModalOpen(true)}
+        onLogout={handleLogout}
+        currentUser={currentUser}
       />
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-8">

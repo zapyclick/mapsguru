@@ -49,3 +49,11 @@ export interface BusinessProfile {
   gbpLink: string;
   logoUrl: string | null;
 }
+
+// Represents a user account
+export interface User {
+  email: string;
+  password: string; // In a real app, this would be a hash
+  registrationDate: string; // ISO 8601 string format
+  trialEndDate: string;   // ISO 8601 string format
+}
