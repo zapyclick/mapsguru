@@ -50,10 +50,11 @@ export interface BusinessProfile {
   logoUrl: string | null;
 }
 
-// Represents a user account
+// Represents a user account, aligned with Firebase structure
 export interface User {
-  email: string;
-  password: string; // In a real app, this would be a hash
+  uid: string; // Firebase Authentication User ID
+  email: string | null; // Email from Firebase Auth
   registrationDate: string; // ISO 8601 string format
   trialEndDate: string;   // ISO 8601 string format
+  // O campo 'password' não é mais armazenado no estado do app.
 }

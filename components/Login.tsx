@@ -1,46 +1,47 @@
 import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { User } from '../types';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase/config';
+import { FirebaseError } from 'firebase/app';
 
 interface LoginProps {
-  onLoginSuccess: (user: User) => void;
   onNavigateToRegister: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) => {
+const Login: React.FC<LoginProps> = ({ onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [users] = useLocalStorage<User[]>('users', []);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Fallback para admin/password se não houver usuários e for o primeiro acesso
-    if (users.length === 0 && email === 'admin@zmaps.com.br' && password === 'password') {
-        const adminUser: User = {
-            email: 'admin@zmaps.com.br',
-            password: 'password',
-            registrationDate: new Date().toISOString(),
-            trialEndDate: new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString() // 5 anos de acesso
-        };
-        onLoginSuccess(adminUser);
-        return;
-    }
+    setIsLoading(true);
+    setError('');
 
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (user) {
-      const trialEndDate = new Date(user.trialEndDate);
-      if (trialEndDate < new Date()) {
-        setError('Seu período de teste expirou.');
-        return;
-      }
-      setError('');
-      onLoginSuccess(user);
-    } else {
-      setError('E-mail ou senha inválidos.');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // O onAuthStateChanged em App.tsx cuidará do redirecionamento e estado.
+    } catch (err: unknown) {
+        // FIX: The error is of type 'unknown' in a catch block. Added a type guard to check if 'err' is an instance of 'FirebaseError' before accessing its 'code' property. This resolves the TypeScript error.
+        if (err instanceof FirebaseError) {
+            switch (err.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    setError('E-mail ou senha inválidos.');
+                    break;
+                case 'auth/invalid-email':
+                    setError('O formato do e-mail é inválido.');
+                    break;
+                default:
+                    setError('Ocorreu um erro ao fazer login. Tente novamente.');
+                    break;
+            }
+        } else {
+             setError('Ocorreu um erro desconhecido.');
+        }
+        setIsLoading(false);
     }
   };
 
@@ -70,6 +71,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) =
                 required
                 aria-required="true"
                 autoComplete="email"
+                disabled={isLoading}
               />
             </NeumorphicCardInset>
           </div>
@@ -86,6 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) =
                 required
                 aria-required="true"
                 autoComplete="current-password"
+                disabled={isLoading}
               />
             </NeumorphicCardInset>
           </div>
@@ -95,9 +98,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) =
           <div>
             <button
               type="submit"
+              disabled={isLoading}
               className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
-              Entrar
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
           </div>
         </form>
@@ -105,7 +109,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) =
         <div className="text-center">
             <p className="text-sm text-slate-600 dark:text-slate-400">
                 Não tem uma conta?{' '}
-                <button onClick={onNavigateToRegister} className="font-semibold text-blue-500 hover:underline focus:outline-none">
+                <button onClick={onNavigateToRegister} className="font-semibold text-blue-500 hover:underline focus:outline-none" disabled={isLoading}>
                     Cadastre-se
                 </button>
             </p>

@@ -10,13 +10,17 @@ import QnaAssistant from './components/QnaAssistant';
 import ProductAssistant from './components/ProductAssistant';
 import Login from './components/Login';
 import Register from './components/Register';
+import { auth, db } from './firebase/config';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 export type View = 'posts' | 'reviews' | 'qna' | 'products';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('isAuthenticated', false);
-  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
-  const [users, setUsers] = useLocalStorage<User[]>('users', []);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
   const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile', {
     name: '',
@@ -26,8 +30,41 @@ const App: React.FC = () => {
   });
   const [activeView, setActiveView] = useState<View>('posts');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
+  useEffect(() => {
+    // onAuthStateChanged é o listener em tempo real para o status de auth do usuário
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Usuário está logado. Buscar dados do Firestore.
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUser({
+            uid: user.uid,
+            email: user.email,
+            registrationDate: userData.registrationDate,
+            trialEndDate: userData.trialEndDate,
+          });
+        } else {
+          // O usuário existe no Auth, mas não no Firestore.
+          // Isso pode acontecer se o registro falhou no meio.
+          // Por segurança, deslogamos o usuário.
+          console.error("Usuário autenticado não encontrado no Firestore. Deslogando.");
+          await signOut(auth);
+          setCurrentUser(null);
+        }
+      } else {
+        // Usuário está deslogado.
+        setCurrentUser(null);
+      }
+      setIsLoadingAuth(false);
+    });
+
+    // Limpa o listener quando o componente é desmontado
+    return () => unsubscribe();
+  }, []);
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -49,7 +86,6 @@ const App: React.FC = () => {
     setCurrentPost(createNewPostObject());
   };
 
-  // On first load, if no current post, create one.
   useEffect(() => {
     if (!currentPost) {
       handleCreateNewPost();
@@ -61,19 +97,26 @@ const App: React.FC = () => {
     setCurrentPost(updatedPost);
   };
   
-  const handleLoginSuccess = (user: User) => {
-    setIsAuthenticated(true);
-    setCurrentUser(user);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // onAuthStateChanged irá lidar com a atualização do estado do currentUser
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-  };
+  if (isLoadingAuth) {
+    return (
+      <div className="bg-slate-200 dark:bg-slate-900 min-h-screen flex items-center justify-center">
+        <p className="text-slate-800 dark:text-slate-200">Carregando...</p>
+      </div>
+    );
+  }
 
-  if (!isAuthenticated) {
+  if (!currentUser) {
     if (authView === 'login') {
-      return <Login onLoginSuccess={handleLoginSuccess} onNavigateToRegister={() => setAuthView('register')} />;
+      return <Login onNavigateToRegister={() => setAuthView('register')} />;
     }
     return <Register onNavigateToLogin={() => setAuthView('login')} />;
   }
@@ -90,7 +133,6 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           
-          {/* Conditional Content */}
           {activeView === 'posts' && currentPost && (
             <>
               <PostCreator
@@ -118,7 +160,6 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Business Profile Modal */}
       {isProfileModalOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"

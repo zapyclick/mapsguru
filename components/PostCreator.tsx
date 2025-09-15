@@ -169,9 +169,9 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
             <h3 className="font-bold text-lg">Como funciona?</h3>
             <ul className="list-disc list-inside space-y-2">
                 <li><strong>Passo 1: Insira as Palavras-chave:</strong> Pense no tema do seu post (uma promoção, um novo produto, um evento) e insira os termos principais. A IA usará isso como base.</li>
-                <li><strong>Passo 2: Gere e Edite o Texto:</strong> Com um clique, a IA cria uma manchete e um texto persuasivo. Você pode editar o texto livremente para ajustá-lo à sua preferência.</li>
+                <li><strong>Passo 2: Gere e Edite o Texto:</strong> Com um clique, a IA cria uma manchete, um texto persuasivo e hashtags relevantes. Você pode editar o texto livremente para ajustá-lo à sua preferência.</li>
                 <li><strong>Passo 3: Adicione uma Imagem:</strong> Busque uma imagem profissional online, suba uma do seu computador e edite-a adicionando textos, seu logo e outros elementos para torná-la única.</li>
-                 <li><strong>Passo 4: Copie e Cole:</strong> Com tudo pronto, clique no botão "Copiar Texto e Baixar Imagem". O texto formatado (com links de WhatsApp e do seu perfil) irá para sua área de transferência, e a imagem será baixada. Depois, é só colar no seu GBP!</li>
+                 <li><strong>Passo 4: Copie e Cole:</strong> Com tudo pronto, clique no botão "Copiar Texto e Baixar Imagem". O texto formatado (com links, hashtags, etc.) irá para sua área de transferência, e a imagem será baixada. Depois, é só colar no seu GBP!</li>
             </ul>
 
             <h3 className="font-bold text-lg">Vantagens:</h3>
@@ -179,7 +179,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
                 <li><strong>Economia de Tempo:</strong> Crie posts completos em minutos, não em horas.</li>
                 <li><strong>Textos Profissionais:</strong> A IA utiliza técnicas de marketing para criar textos que convertem.</li>
                 <li><strong>Identidade Visual:</strong> Personalize suas imagens com seu logo e mensagens de impacto.</li>
-                <li><strong>Aumento de Engajamento:</strong> Posts de alta qualidade geram mais visualizações, cliques e clientes.</li>
+                <li><strong>Aumento de Engajamento:</strong> Posts de alta qualidade com hashtags relevantes geram mais visualizações, cliques e clientes.</li>
             </ul>
         </div>
       </InfoModal>

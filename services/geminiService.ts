@@ -69,6 +69,9 @@ export const generatePostText = async (keywords: string, profile: BusinessProfil
     const gbpLinkInstruction = cleanGbpLink
         ? `Após o link do WhatsApp (se houver), adicione outra linha em branco. Em seguida, adicione a frase "Ir Agora:", seguida do link: ${cleanGbpLink}.`
         : '';
+    
+    const hashtagInstruction = 'No final de todo o post, após uma linha em branco, adicione entre 3 a 5 hashtags relevantes, separadas por espaços. Exemplo: #Padaria #PaesArtesanais #CafeDaManha';
+
 
     // Dynamically build the example output to avoid showing a fake "Ir Agora" link if the user hasn't provided one.
     let exampleOutput = `Que tal um clássico delicioso para o seu almoço ou jantar?
@@ -89,6 +92,11 @@ https://wa.me/5511999998888`;
 
 Ir Agora: https://maps.app.goo.gl/XYZ123`;
     }
+    
+    // Add hashtags to the example
+    exampleOutput += `
+
+#PadariaBolonha #MacarraoBolonhesa #ComidaItaliana #Almoco`;
 
     const prompt = `
       Crie um post para o Google Business Profile para a empresa "${profile.name}".
@@ -99,14 +107,15 @@ Ir Agora: https://maps.app.goo.gl/XYZ123`;
       2.  **Linha em Branco:** Insira uma linha em branco após a manchete.
       3.  **Corpo do Texto:** Desenvolva o restante do post, detalhando a oferta ou notícia.
       4.  **CTAs:** As chamadas para ação (WhatsApp e "Ir Agora") devem vir no final, após o corpo do texto, seguindo as regras abaixo.
+      5.  **Hashtags:** Adicione as hashtags no final de tudo, conforme a instrução específica.
 
       Instruções Gerais:
       - O tom deve ser profissional, mas amigável e convidativo.
       - O post deve ser conciso e direto.
-      - Não use hashtags.
       - O post deve ter no máximo 1500 caracteres no total.
       - ${ctaInstruction}
       - ${gbpLinkInstruction}
+      - ${hashtagInstruction}
       - Retorne apenas o texto do post, sem nenhuma formatação extra, introduções ou observações.
 
       Exemplo de output com a nova estrutura:
