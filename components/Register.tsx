@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
-import { FirebaseError } from 'firebase/app';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { User } from '../types';
 
 interface RegisterProps {
     onNavigateToLogin: () => void;
@@ -13,11 +11,12 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [coupon, setCoupon] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [users, setUsers] = useLocalStorage<User[]>('users', []);
 
-    const handleRegister = async (e: React.FormEvent) => {
+    const handleRegister = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
@@ -26,48 +25,42 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
             setError('As senhas não coincidem.');
             return;
         }
-        
-        setIsLoading(true);
 
-        try {
-            // 1. Criar o usuário no Firebase Authentication
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // 2. Criar o documento do usuário no Firestore
-            const registrationDate = new Date();
-            const trialEndDate = new Date();
-            trialEndDate.setDate(registrationDate.getDate() + 14); // Teste de 14 dias
-
-            await setDoc(doc(db, "users", user.uid), {
-                email: user.email,
-                registrationDate: registrationDate.toISOString(),
-                trialEndDate: trialEndDate.toISOString(),
-                plan: 'trial', // Define o plano inicial
-            });
-            
-            setSuccess('Cadastro realizado com sucesso! Você será redirecionado para o login.');
-            
-            setTimeout(() => {
-                onNavigateToLogin();
-            }, 2500);
-
-        } catch (err: unknown) {
-            // FIX: The error is of type 'unknown' in a catch block. Added a type guard to check if 'err' is an instance of 'FirebaseError' before accessing its 'code' property. This resolves the TypeScript errors.
-            if (err instanceof FirebaseError) {
-                if (err.code === 'auth/email-already-in-use') {
-                    setError('Este e-mail já está em uso.');
-                } else if (err.code === 'auth/weak-password') {
-                    setError('A senha deve ter pelo menos 6 caracteres.');
-                } else {
-                    setError('Ocorreu um erro ao criar a conta. Tente novamente.');
-                }
-            } else {
-                setError('Ocorreu um erro desconhecido.');
-            }
-        } finally {
-            setIsLoading(false);
+        if (users.find(u => u.email === email)) {
+            setError('Este e-mail já está em uso.');
+            return;
         }
+
+        const registrationDate = new Date();
+        const trialEndDate = new Date();
+        
+        // Check for the special coupon code
+        if (coupon.trim().toUpperCase() === 'ZMAPS365') {
+            trialEndDate.setDate(registrationDate.getDate() + 365); // 365-day trial
+        } else {
+            trialEndDate.setDate(registrationDate.getDate() + 14); // Default 14-day trial
+        }
+
+
+        const newUser: User = {
+            email,
+            password,
+            registrationDate: registrationDate.toISOString(),
+            trialEndDate: trialEndDate.toISOString(),
+            plan: 'trial',
+        };
+        setUsers([...users, newUser]);
+        
+        setSuccess('Cadastro realizado com sucesso! Redirecionando para o login...');
+        
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setCoupon('');
+
+        setTimeout(() => {
+            onNavigateToLogin();
+        }, 2500);
     };
 
     return (
@@ -96,7 +89,6 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                                 required
                                 aria-required="true"
                                 autoComplete="email"
-                                disabled={isLoading}
                             />
                         </NeumorphicCardInset>
                     </div>
@@ -108,12 +100,11 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Crie uma senha (mín. 6 caracteres)"
+                                placeholder="Crie uma senha"
                                 className="w-full bg-transparent p-3 outline-none"
                                 required
                                 aria-required="true"
                                 autoComplete="new-password"
-                                disabled={isLoading}
                             />
                         </NeumorphicCardInset>
                     </div>
@@ -130,7 +121,21 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                                 required
                                 aria-required="true"
                                 autoComplete="new-password"
-                                disabled={isLoading}
+                            />
+                        </NeumorphicCardInset>
+                    </div>
+
+                    <div>
+                        <label htmlFor="coupon-code" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Cupom de Desconto (Opcional)</label>
+                        <NeumorphicCardInset className="p-1 rounded-lg">
+                            <input
+                                id="coupon-code"
+                                type="text"
+                                value={coupon}
+                                onChange={(e) => setCoupon(e.target.value)}
+                                placeholder="Insira seu cupom"
+                                className="w-full bg-transparent p-3 outline-none"
+                                autoComplete="off"
                             />
                         </NeumorphicCardInset>
                     </div>
@@ -138,13 +143,13 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                     {error && <p className="text-red-500 text-sm text-center" role="alert">{error}</p>}
                     {success && <p className="text-green-600 dark:text-green-400 text-sm text-center" role="status">{success}</p>}
 
+
                     <div>
                         <button
                             type="submit"
-                            disabled={isLoading || !!success}
                             className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                         >
-                            {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+                            Cadastrar
                         </button>
                     </div>
                 </form>
@@ -152,7 +157,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                 <div className="text-center">
                     <p className="text-sm text-slate-600 dark:text-slate-400">
                         Já tem uma conta?{' '}
-                        <button onClick={onNavigateToLogin} className="font-semibold text-blue-500 hover:underline focus:outline-none" disabled={isLoading}>
+                        <button onClick={onNavigateToLogin} className="font-semibold text-blue-500 hover:underline focus:outline-none">
                             Faça login
                         </button>
                     </p>

@@ -25,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     reviews: 'Assistente de Avaliações',
     qna: 'Gerador de Q&A',
     products: 'Catálogo de Produtos',
+    subscription: 'Meu Plano',
   };
 
   // Close menus when clicking outside
@@ -42,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
   }, []);
   
   const TrialStatusBanner = () => {
-    if (!currentUser?.trialEndDate) return null;
+    if (!currentUser?.trialEndDate || currentUser.plan !== 'trial') return null;
 
     const endDate = new Date(currentUser.trialEndDate);
     const now = new Date();
@@ -51,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     if (daysRemaining <= 0) {
         return (
             <div className="text-center bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 text-sm py-2 px-4 rounded-b-lg">
-                Seu período de teste expirou. Para continuar usando, considere um upgrade.
+                Seu período de teste expirou. Faça upgrade para continuar usando os recursos.
             </div>
         );
     }

@@ -8,19 +8,16 @@ import BusinessProfileSetup from './components/BusinessProfileSetup';
 import ReviewAssistant from './components/ReviewAssistant';
 import QnaAssistant from './components/QnaAssistant';
 import ProductAssistant from './components/ProductAssistant';
+import SubscriptionManager from './components/SubscriptionManager';
 import Login from './components/Login';
 import Register from './components/Register';
-import { auth, db } from './firebase/config';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 
-export type View = 'posts' | 'reviews' | 'qna' | 'products';
+export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription';
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
-
+  const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('isAuthenticated', false);
+  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('currentUser', null);
+  const [users, setUsers] = useLocalStorage<User[]>('users', []);
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
   const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile', {
     name: '',
@@ -30,41 +27,25 @@ const App: React.FC = () => {
   });
   const [activeView, setActiveView] = useState<View>('posts');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
+  // This effect runs on app start and ensures the user data schema is up-to-date.
   useEffect(() => {
-    // onAuthStateChanged é o listener em tempo real para o status de auth do usuário
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Usuário está logado. Buscar dados do Firestore.
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUser({
-            uid: user.uid,
-            email: user.email,
-            registrationDate: userData.registrationDate,
-            trialEndDate: userData.trialEndDate,
-          });
-        } else {
-          // O usuário existe no Auth, mas não no Firestore.
-          // Isso pode acontecer se o registro falhou no meio.
-          // Por segurança, deslogamos o usuário.
-          console.error("Usuário autenticado não encontrado no Firestore. Deslogando.");
-          await signOut(auth);
-          setCurrentUser(null);
+    const requiresMigration = users.some(u => !u.plan);
+    if (requiresMigration) {
+      const migratedUsers = users.map(u => (u.plan ? u : { ...u, plan: 'trial' as const }));
+      setUsers(migratedUsers);
+      
+      // If a user is logged in, update their session data too
+      if (currentUser) {
+        const updatedCurrentUser = migratedUsers.find(u => u.email === currentUser.email);
+        if (updatedCurrentUser) {
+          setCurrentUser(updatedCurrentUser);
         }
-      } else {
-        // Usuário está deslogado.
-        setCurrentUser(null);
       }
-      setIsLoadingAuth(false);
-    });
+    }
+  }, [users, setUsers, currentUser, setCurrentUser]);
 
-    // Limpa o listener quando o componente é desmontado
-    return () => unsubscribe();
-  }, []);
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -86,6 +67,7 @@ const App: React.FC = () => {
     setCurrentPost(createNewPostObject());
   };
 
+  // On first load, if no current post, create one.
   useEffect(() => {
     if (!currentPost) {
       handleCreateNewPost();
@@ -97,26 +79,33 @@ const App: React.FC = () => {
     setCurrentPost(updatedPost);
   };
   
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // onAuthStateChanged irá lidar com a atualização do estado do currentUser
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+  const handleLoginSuccess = (user: User) => {
+    setIsAuthenticated(true);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  const handleUpgradePlan = (userEmail: string, newPlan: 'pro') => {
+    // Update the master list of users
+    const updatedUsers = users.map(user => 
+      user.email === userEmail ? { ...user, plan: newPlan, trialEndDate: '' } : user
+    );
+    setUsers(updatedUsers);
+
+    // Update the currently logged-in user's state
+    if (currentUser && currentUser.email === userEmail) {
+      setCurrentUser({ ...currentUser, plan: newPlan, trialEndDate: '' });
     }
   };
 
-  if (isLoadingAuth) {
-    return (
-      <div className="bg-slate-200 dark:bg-slate-900 min-h-screen flex items-center justify-center">
-        <p className="text-slate-800 dark:text-slate-200">Carregando...</p>
-      </div>
-    );
-  }
 
-  if (!currentUser) {
+  if (!isAuthenticated) {
     if (authView === 'login') {
-      return <Login onNavigateToRegister={() => setAuthView('register')} />;
+      return <Login onLoginSuccess={handleLoginSuccess} onNavigateToRegister={() => setAuthView('register')} />;
     }
     return <Register onNavigateToLogin={() => setAuthView('login')} />;
   }
@@ -133,6 +122,7 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           
+          {/* Conditional Content */}
           {activeView === 'posts' && currentPost && (
             <>
               <PostCreator
@@ -157,9 +147,14 @@ const App: React.FC = () => {
             <ProductAssistant businessProfile={businessProfile} />
           )}
 
+          {activeView === 'subscription' && (
+            <SubscriptionManager currentUser={currentUser} onUpgradePlan={handleUpgradePlan} />
+          )}
+
         </div>
       </main>
 
+      {/* Business Profile Modal */}
       {isProfileModalOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"
