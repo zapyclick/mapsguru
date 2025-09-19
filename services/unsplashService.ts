@@ -4,6 +4,13 @@ const API_BASE_URL = 'https://api.unsplash.com';
 
 // ATENÇÃO: Cole sua Chave de Acesso (Access Key) do Unsplash abaixo.
 // SUBSTITUA O TEXTO 'COLE_AQUI_SUA_ACCESS_KEY_DO_UNSPLASH' PELA SUA CHAVE REAL.
+// ---
+// NOTA DE SEGURANÇA PARA PRODUÇÃO:
+// Expor sua chave de API do Unsplash no código do frontend (cliente) não é seguro.
+// Em um aplicativo real, essa chave deve ser movida para um backend (como uma Função Serverless)
+// que atue como um proxy. O seu app faria uma chamada para o seu backend, e o seu backend,
+// de forma segura, faria a chamada para a API do Unsplash.
+// ---
 const UNSPLASH_ACCESS_KEY: string = 'CGYigQ8Iy6Vg8jIY9yQNZ62Jn5dMV9iYd4vqUIg-QR0';
 
 /**

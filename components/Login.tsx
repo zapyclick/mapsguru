@@ -1,48 +1,39 @@
 import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { User } from '../types';
+import { auth } from '../services/firebase';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 
 interface LoginProps {
-  onLoginSuccess: (user: User) => void;
   onNavigateToRegister: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateToRegister }) => {
+const Login: React.FC<LoginProps> = ({ onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [users] = useLocalStorage<User[]>('users', []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Fallback para admin/password se não houver usuários e for o primeiro acesso
-    if (users.length === 0 && email === 'admin@zmaps.com.br' && password === 'password') {
-        const adminUser: User = {
-            email: 'admin@zmaps.com.br',
-            password: 'password',
-            registrationDate: new Date().toISOString(),
-            trialEndDate: new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString(), // 5 anos de acesso
-            plan: 'admin',
-        };
-        onLoginSuccess(adminUser);
-        return;
-    }
+    setError('');
 
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (user) {
-      const trialEndDate = new Date(user.trialEndDate);
-      // Only check trial expiration for trial users
-      if (user.plan === 'trial' && trialEndDate < new Date()) {
-        setError('Seu período de teste expirou.');
-        return;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onLoginSuccess is no longer needed, App.tsx's onAuthStateChanged will handle it.
+    } catch (err: unknown) {
+      const authError = err as AuthError;
+      switch (authError.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+          setError('E-mail ou senha inválidos.');
+          break;
+        case 'auth/too-many-requests':
+            setError('Acesso temporariamente bloqueado. Tente novamente mais tarde.');
+            break;
+        default:
+          setError('Ocorreu um erro ao fazer login.');
+          break;
       }
-      setError('');
-      onLoginSuccess(user);
-    } else {
-      setError('E-mail ou senha inválidos.');
+      console.error("Firebase login error: ", authError.code);
     }
   };
 

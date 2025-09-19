@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { User } from '../types';
+import { auth, db } from '../services/firebase';
+import { createUserWithEmailAndPassword, AuthError } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 interface RegisterProps {
     onNavigateToLogin: () => void;
@@ -14,9 +15,9 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
     const [coupon, setCoupon] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [users, setUsers] = useLocalStorage<User[]>('users', []);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
@@ -25,42 +26,60 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
             setError('As senhas não coincidem.');
             return;
         }
+        
+        setIsLoading(true);
 
-        if (users.find(u => u.email === email)) {
-            setError('Este e-mail já está em uso.');
-            return;
+        try {
+            // 1. Create user in Firebase Authentication
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // 2. Create user document in Firestore
+            const registrationDate = new Date();
+            const trialEndDate = new Date();
+            
+            if (coupon.trim().toUpperCase() === 'GBP') {
+                trialEndDate.setDate(registrationDate.getDate() + 365); // 365-day trial
+            } else {
+                trialEndDate.setDate(registrationDate.getDate() + 14); // Default 14-day trial
+            }
+
+            // Data to be saved in Firestore, without password
+            const newUserDocument = {
+                email: user.email,
+                registrationDate: registrationDate.toISOString(),
+                trialEndDate: trialEndDate.toISOString(),
+                plan: 'trial' as const,
+            };
+
+            await setDoc(doc(db, "users", user.uid), newUserDocument);
+
+            setSuccess('Cadastro realizado com sucesso! Redirecionando para o login...');
+            
+            setTimeout(() => {
+                onNavigateToLogin();
+            }, 2500);
+
+        } catch (err: unknown) {
+            const authError = err as AuthError;
+            switch (authError.code) {
+                case 'auth/email-already-in-use':
+                    setError('Este e-mail já está em uso.');
+                    break;
+                case 'auth/weak-password':
+                    setError('A senha deve ter pelo menos 6 caracteres.');
+                    break;
+                case 'auth/invalid-email':
+                    setError('O formato do e-mail é inválido.');
+                    break;
+                default:
+                    setError('Ocorreu um erro ao criar a conta.');
+                    break;
+            }
+            console.error("Firebase register error: ", authError.code);
+        } finally {
+            setIsLoading(false);
         }
-
-        const registrationDate = new Date();
-        const trialEndDate = new Date();
-        
-        // Check for the special coupon code
-        if (coupon.trim().toUpperCase() === 'ZMAPS365') {
-            trialEndDate.setDate(registrationDate.getDate() + 365); // 365-day trial
-        } else {
-            trialEndDate.setDate(registrationDate.getDate() + 14); // Default 14-day trial
-        }
-
-
-        const newUser: User = {
-            email,
-            password,
-            registrationDate: registrationDate.toISOString(),
-            trialEndDate: trialEndDate.toISOString(),
-            plan: 'trial',
-        };
-        setUsers([...users, newUser]);
-        
-        setSuccess('Cadastro realizado com sucesso! Redirecionando para o login...');
-        
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setCoupon('');
-
-        setTimeout(() => {
-            onNavigateToLogin();
-        }, 2500);
     };
 
     return (
@@ -100,7 +119,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Crie uma senha"
+                                placeholder="Crie uma senha (mín. 6 caracteres)"
                                 className="w-full bg-transparent p-3 outline-none"
                                 required
                                 aria-required="true"
@@ -126,7 +145,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                     </div>
 
                     <div>
-                        <label htmlFor="coupon-code" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Cupom de Desconto (Opcional)</label>
+                        <label htmlFor="coupon-code" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Cupom Promocional (Opcional)</label>
                         <NeumorphicCardInset className="p-1 rounded-lg">
                             <input
                                 id="coupon-code"
@@ -147,9 +166,10 @@ const Register: React.FC<RegisterProps> = ({ onNavigateToLogin }) => {
                     <div>
                         <button
                             type="submit"
+                            disabled={isLoading}
                             className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                         >
-                            Cadastrar
+                            {isLoading ? 'Cadastrando...' : 'Cadastrar'}
                         </button>
                     </div>
                 </form>
