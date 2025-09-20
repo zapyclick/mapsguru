@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Post, BusinessProfile } from '../types';
-import { NeumorphicCard } from './NeumorphicCard';
+import { Post, BusinessProfile } from '../types.ts';
+import { NeumorphicCard } from './NeumorphicCard.tsx';
 
 // Helper function to find URLs in text and return an array of React elements
 const renderTextWithLinks = (text: string) => {

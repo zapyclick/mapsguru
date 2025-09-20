@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { BusinessProfile } from '../types';
-import { generateProductDescription } from '../services/geminiService';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { IconButton } from './IconButton';
-import InfoModal from './InfoModal';
+import { BusinessProfile } from '../types.ts';
+import { generateProductDescription } from '../services/geminiService.ts';
+import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { IconButton } from './IconButton.tsx';
+import InfoModal from './InfoModal.tsx';
 
 interface ProductAssistantProps {
   businessProfile: BusinessProfile;

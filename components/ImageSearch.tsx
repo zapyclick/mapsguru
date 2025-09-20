@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { UnsplashImage } from '../types';
-import { searchImages } from '../services/unsplashService';
-import { NeumorphicCardInset } from './NeumorphicCard';
+import { UnsplashImage } from '../types.ts';
+import { searchImages } from '../services/unsplashService.ts';
+import { NeumorphicCardInset } from './NeumorphicCard.tsx';
 
 interface ImageSearchProps {
   onImageSelect: (url: string | null, alt: string | null) => void;

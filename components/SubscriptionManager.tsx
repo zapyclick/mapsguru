@@ -1,25 +1,40 @@
 import React, { useState } from 'react';
-import { User } from '../types';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
+import { User } from '../types.ts';
+import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
 
-interface SubscriptionManagerProps {
-  currentUser: User | null;
-  onUpgradePlan: (email: string, plan: 'pro' | 'premium') => void;
-}
+// ===================================================================================
+// ATENÇÃO: É AQUI QUE VOCÊ COLOCA SEUS LINKS DE PAGAMENTO!
+// 1. Crie os links de pagamento na sua plataforma (Mercado Pago, Stripe, etc.).
+// 2. Cole cada link no lugar correspondente abaixo.
+// ===================================================================================
+const PAYMENT_LINKS = {
+  pro: {
+    monthly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI', // Ex: https://mpago.la/123xyz
+    yearly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
+  },
+  premium: {
+    monthly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
+    yearly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
+  },
+};
 
-// FIX: Define a specific type for billing cycles to ensure type safety.
-// This prevents string values other than 'monthly' or 'yearly' from being used,
-// resolving the TypeScript error where a generic 'string' was not assignable
-// to the more specific '"monthly" | "yearly"' type required by `handleUpgradeClick`.
+interface SubscriptionManagerProps {}
+
 interface BillingCycles {
   pro: 'monthly' | 'yearly';
   premium: 'monthly' | 'yearly';
 }
 
-const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, onUpgradePlan }) => {
-  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ plan: 'pro' | 'premium', cycle: 'monthly' | 'yearly' } | null>(null);
-  // FIX: Apply the BillingCycles type to the state for type safety. This resolves compilation errors on lines 153 and 177.
+const mockUser: User = {
+    uid: 'mock-user-id',
+    email: 'usuario@exemplo.com',
+    plan: 'trial',
+    registrationDate: new Date().toISOString(),
+    trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+};
+
+const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
+  const [currentUser] = useState<User | null>(mockUser);
   const [billingCycles, setBillingCycles] = useState<BillingCycles>({ pro: 'monthly', premium: 'monthly' });
 
   if (!currentUser) {
@@ -45,17 +60,12 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
     }
   };
   
-  const handleUpgradeClick = (plan: 'pro' | 'premium', cycle: 'monthly' | 'yearly') => {
-    setSelectedPlan({ plan, cycle });
-    setIsConfirmationModalOpen(true);
-  }
-
-  const handleConfirmPayment = () => {
-    if (currentUser && selectedPlan) {
-      onUpgradePlan(currentUser.email, selectedPlan.plan);
+  const handleUpgradeClick = (paymentUrl: string) => {
+    if (!paymentUrl || paymentUrl.includes('SEU_LINK_DE_PAGAMENTO_AQUI')) {
+      alert('O link de pagamento para este plano ainda não foi configurado.');
+      return;
     }
-    setIsConfirmationModalOpen(false);
-    setSelectedPlan(null);
+    window.open(paymentUrl, '_blank');
   }
 
   const TrialStatus = () => {
@@ -77,39 +87,6 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
         Seu teste termina em <strong>{daysRemaining} dia{daysRemaining !== 1 ? 's' : ''}</strong>.
       </p>
     );
-  };
-
-  const ConfirmationModal = () => {
-    if (!selectedPlan) return null;
-    const planName = selectedPlan.plan === 'pro' ? 'Pro' : 'Premium';
-    const cycleName = selectedPlan.cycle === 'monthly' ? 'Mensal' : 'Anual';
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-            <NeumorphicCard className="w-full max-w-md p-6 space-y-4">
-                <h3 className="text-xl font-bold">Confirmar Upgrade</h3>
-                <p className="text-sm text-slate-700 dark:text-slate-300">
-                    Você está assinando o <strong>Plano {planName} ({cycleName})</strong>.
-                    <br/><br/>
-                    Você será redirecionado para o checkout seguro do Mercado Pago para concluir sua assinatura. Após a confirmação do pagamento, seu plano será atualizado instantaneamente.
-                </p>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-300 dark:border-slate-700">
-                    <button 
-                        onClick={() => setIsConfirmationModalOpen(false)}
-                        className="py-2 px-5 rounded-lg bg-slate-300 dark:bg-slate-700 font-semibold hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={handleConfirmPayment}
-                        className="py-2 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors"
-                    >
-                        Ir para Pagamento
-                    </button>
-                </div>
-            </NeumorphicCard>
-        </div>
-    )
   };
 
   return (
@@ -136,9 +113,8 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
           </NeumorphicCard>
         </div>
         
-        {/* Upgrade Section - Only show if not already pro/admin */}
-        {(currentUser.plan === 'trial' || currentUser.plan === 'pro') && (
-          <div className="space-y-4 pt-6 border-t border-slate-300 dark:border-slate-700">
+        {/* Upgrade Section */}
+        <div className="space-y-4 pt-6 border-t border-slate-300 dark:border-slate-700">
             <h3 className="font-bold text-lg">Opções de Upgrade</h3>
             <div className="grid md:grid-cols-3 gap-6">
                 {/* Pro Plan Card */}
@@ -160,7 +136,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
                             <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">check_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick('pro', billingCycles.pro)} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
+                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.pro[billingCycles.pro])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
                 </NeumorphicCard>
 
                 {/* Premium Plan Card */}
@@ -184,7 +160,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
                              <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">add_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick('premium', billingCycles.premium)} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
+                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.premium[billingCycles.premium])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
                 </NeumorphicCard>
 
                 {/* Enterprise Plan Card */}
@@ -201,12 +177,8 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ currentUser, 
                     </button>
                 </NeumorphicCard>
             </div>
-          </div>
-        )}
-
+        </div>
       </NeumorphicCard>
-      
-      {isConfirmationModalOpen && <ConfirmationModal />}
     </>
   );
 };

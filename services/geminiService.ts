@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { BusinessProfile } from '../types';
+import { BusinessProfile } from '../types.ts';
 
 // The API key must be obtained exclusively from the environment variable `process.env.API_KEY`.
 // This is a hard requirement.

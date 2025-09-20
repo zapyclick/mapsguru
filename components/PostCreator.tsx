@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Post, BusinessProfile, ImageText } from '../types';
-import { generatePostText } from '../services/geminiService';
-import ImageSearch from './ImageSearch';
-import ImageEditor from './ImageEditor';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import InfoModal from './InfoModal';
-import { IconButton } from './IconButton';
+import { Post, BusinessProfile, ImageText } from '../types.ts';
+import { generatePostText } from '../services/geminiService.ts';
+import ImageSearch from './ImageSearch.tsx';
+import ImageEditor from './ImageEditor.tsx';
+import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import InfoModal from './InfoModal.tsx';
+import { IconButton } from './IconButton.tsx';
 
 interface PostCreatorProps {
   post: Post;

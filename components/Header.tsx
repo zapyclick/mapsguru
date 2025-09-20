@@ -1,19 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTheme } from '../context/ThemeContext';
-import { NeumorphicCard } from './NeumorphicCard';
-import { IconButton } from './IconButton';
-import { View } from '../App';
-import { User } from '../types';
+import { useTheme } from '../context/ThemeContext.tsx';
+import { NeumorphicCard } from './NeumorphicCard.tsx';
+import { IconButton } from './IconButton.tsx';
+import { View } from '../App.tsx';
 
 interface HeaderProps {
   activeView: View;
   setActiveView: (view: View) => void;
   onProfileClick: () => void;
-  onLogout: () => void;
-  currentUser: User | null;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileClick, onLogout, currentUser }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileClick }) => {
   const { theme, toggleTheme } = useTheme();
   const [isFeaturesMenuOpen, setIsFeaturesMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -41,28 +38,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
-  const TrialStatusBanner = () => {
-    if (!currentUser?.trialEndDate || currentUser.plan !== 'trial') return null;
-
-    const endDate = new Date(currentUser.trialEndDate);
-    const now = new Date();
-    const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysRemaining <= 0) {
-        return (
-            <div className="text-center bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 text-sm py-2 px-4 rounded-b-lg">
-                Seu período de teste expirou. Faça upgrade para continuar usando os recursos.
-            </div>
-        );
-    }
-
-    return (
-        <div className="text-center bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-sm py-2 px-4 rounded-b-lg">
-            Você tem <strong>{daysRemaining} dia{daysRemaining !== 1 ? 's' : ''}</strong> restantes no seu período de teste.
-        </div>
-    );
-  };
 
   const renderNavItems = (isMobile = false) => (
     <>
@@ -117,10 +92,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
           {theme === 'light' ? 'dark_mode' : 'light_mode'}
         </span>
       </IconButton>
-      
-      <IconButton onClick={onLogout} aria-label="Sair">
-        <span className="material-symbols-outlined">logout</span>
-      </IconButton>
     </>
   );
 
@@ -155,7 +126,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
             </div>
         </div>
         </NeumorphicCard>
-        <TrialStatusBanner />
     </div>
   );
 };

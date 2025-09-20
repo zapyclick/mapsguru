@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BusinessProfile } from '../types';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { IconButton } from './IconButton';
-import InfoModal from './InfoModal';
+import { BusinessProfile } from '../types.ts';
+import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { IconButton } from './IconButton.tsx';
+import InfoModal from './InfoModal.tsx';
 
 interface BusinessProfileSetupProps {
   profile: BusinessProfile;

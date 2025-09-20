@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
-import { NeumorphicCard } from './NeumorphicCard';
-import { IconButton } from './IconButton';
+import { NeumorphicCard } from './NeumorphicCard.tsx';
+import { IconButton } from './IconButton.tsx';
 
 interface InfoModalProps {
   isOpen: boolean;
