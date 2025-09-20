@@ -1,36 +1,101 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import { User } from '../types';
+import { User as FirebaseUser } from 'firebase/auth'; // Apenas para tipagem
 
-// ==========================================================================================
-// AÇÃO NECESSÁRIA: CONFIGURAÇÃO DO FIREBASE
-// ==========================================================================================
-// O objeto `firebaseConfig` abaixo contém chaves de um projeto de EXEMPLO.
-// Para que o login, cadastro e o banco de dados funcionem, você PRECISA substituí-lo
-// pelas chaves do SEU PRÓPRIO projeto Firebase.
-//
-// COMO OBTER AS SUAS CHAVES:
-// 1. Vá para o Console do Firebase: https://console.firebase.google.com/
-// 2. Selecione o seu projeto (ou crie um novo).
-// 3. Clique no ícone de engrenagem (Configurações do projeto) no canto superior esquerdo.
-// 4. Na aba "Geral", role para baixo até a seção "Seus apps".
-// 5. Se você ainda não registrou um app da web, clique no ícone `</>` para adicionar um.
-// 6. Na configuração do app, você encontrará o objeto `firebaseConfig`. Copie e cole ele inteiro aqui.
-// ==========================================================================================
+// --- Configuração e Inicialização ---
+
+// Suas credenciais do Firebase (SUBSTITUA PELAS SUAS)
 const firebaseConfig = {
-  // COLE A CONFIGURAÇÃO DO SEU PROJETO FIREBASE AQUI
-  apiKey: "AIzaSyAneBXMvCiDC5STcsTxvn4Byn70LXSXwQM",
-  authDomain: "mapszapy.firebaseapp.com",
-  projectId: "mapszapy",
-  storageBucket: "mapszapy.firebasestorage.app",
-  messagingSenderId: "289369633409",
-  appId: "1:289369633409:web:cf75117d9ae02f5f58d380"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
+// Inicializa o Firebase apenas uma vez
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// Inicializa o Firebase com a nova sintaxe modular
-const app = initializeApp(firebaseConfig);
+// Obtém as instâncias dos serviços usando a sintaxe v8
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// Exporta as instâncias dos serviços que serão usados no aplicativo
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// --- Funções de Autenticação ---
+
+/**
+ * Cadastra um novo usuário e cria seu perfil no Firestore.
+ */
+export const signUp = async (email: string, password: string): Promise<FirebaseUser> => {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    if (!user) {
+      throw new Error("Falha ao criar usuário.");
+    }
+
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+
+    const newUserProfile: User = {
+        uid: user.uid,
+        email: user.email!,
+        plan: 'trial',
+        registrationDate: new Date().toISOString(),
+        trialEndDate: trialEndDate.toISOString()
+    };
+    
+    // A sintaxe do Firestore v8
+    await db.collection("users").doc(user.uid).set(newUserProfile);
+    
+    return user as FirebaseUser;
+};
+
+/**
+ * Autentica um usuário existente.
+ */
+export const signIn = async (email: string, password: string): Promise<FirebaseUser> => {
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    if (!userCredential.user) {
+        throw new Error("Usuário não encontrado após o login.");
+    }
+    return userCredential.user as FirebaseUser;
+};
+
+/**
+ * Desconecta o usuário atual.
+ */
+export const signOut = (): Promise<void> => {
+    return auth.signOut();
+};
+
+/**
+ * Observa mudanças no estado de autenticação.
+ */
+export const onAuthChange = (callback: (user: FirebaseUser | null) => void) => {
+    return auth.onAuthStateChanged(callback);
+};
+
+// --- Funções do Firestore ---
+
+/**
+ * Busca o perfil de um usuário no Firestore.
+ */
+export const getUserProfile = async (uid: string): Promise<User | null> => {
+    const userDocRef = db.collection("users").doc(uid);
+    const userDocSnap = await userDocRef.get();
+
+    if (userDocSnap.exists) {
+        return userDocSnap.data() as User;
+    } else {
+        console.warn(`Nenhum perfil de usuário encontrado para o UID: ${uid}`);
+        return null;
+    }
+};
+
+// Exporta as instâncias para uso direto se necessário
+export { auth, db };

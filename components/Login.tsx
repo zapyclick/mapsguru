@@ -1,109 +1,98 @@
+
 import React, { useState } from 'react';
+import { signIn } from '../services/firebase';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard';
-import { auth } from '../services/firebase';
-import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
+import { logoDataUri } from '../assets/logo';
 
 interface LoginProps {
-  onNavigateToRegister: () => void;
+  onLoginSuccess: () => void;
+  onSwitchToRegister: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onNavigateToRegister }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onSwitchToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
+    setIsLoading(true);
 
+    if (!email || !password) {
+      setError('Por favor, preencha todos os campos.');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // onLoginSuccess is no longer needed, App.tsx's onAuthStateChanged will handle it.
-    } catch (err: unknown) {
-      const authError = err as AuthError;
-      switch (authError.code) {
-        case 'auth/invalid-credential':
-        case 'auth/user-not-found':
-          setError('E-mail ou senha inválidos.');
-          break;
-        case 'auth/too-many-requests':
-            setError('Acesso temporariamente bloqueado. Tente novamente mais tarde.');
-            break;
-        default:
-          setError('Ocorreu um erro ao fazer login.');
-          break;
-      }
-      console.error("Firebase login error: ", authError.code);
+      await signIn(email, password);
+      onLoginSuccess();
+    } catch (err: any) {
+      setError('Falha no login. Verifique seu e-mail e senha.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-slate-200 dark:bg-slate-900 min-h-screen flex items-center justify-center p-4 transition-colors duration-300 font-sans">
-      <NeumorphicCard className="w-full max-w-sm p-8 space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-200 dark:bg-slate-900 p-4">
+      <NeumorphicCard className="w-full max-w-md p-8 space-y-6">
         <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-                Zmaps
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                gestão inteligente para negócios locais
-            </p>
+            <img src={logoDataUri} alt="Zmaps Logo" className="w-32 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold">Acessar sua Conta</h2>
+            <p className="text-slate-600 dark:text-slate-400">Bem-vindo de volta!</p>
         </div>
-
+        
+        {error && <p className="text-center text-red-500 bg-red-100 dark:bg-red-900/30 p-3 rounded-lg">{error}</p>}
+        
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">E-mail</label>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">Email</label>
             <NeumorphicCardInset className="p-1 rounded-lg">
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Digite seu e-mail"
-                className="w-full bg-transparent p-3 outline-none"
-                required
-                aria-required="true"
                 autoComplete="email"
+                required
+                className="w-full bg-transparent p-3 outline-none"
               />
             </NeumorphicCardInset>
           </div>
           <div>
-            <label htmlFor="password"  className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Senha</label>
+            <label htmlFor="password"className="block text-sm font-medium mb-2">Senha</label>
             <NeumorphicCardInset className="p-1 rounded-lg">
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Digite sua senha"
-                className="w-full bg-transparent p-3 outline-none"
-                required
-                aria-required="true"
                 autoComplete="current-password"
+                required
+                className="w-full bg-transparent p-3 outline-none"
               />
             </NeumorphicCardInset>
           </div>
-          
-          {error && <p className="text-red-500 text-sm text-center" role="alert">{error}</p>}
-
           <div>
             <button
               type="submit"
-              className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              disabled={isLoading}
+              className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Entrar
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
           </div>
         </form>
-
-        <div className="text-center">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-                Não tem uma conta?{' '}
-                <button onClick={onNavigateToRegister} className="font-semibold text-blue-500 hover:underline focus:outline-none">
-                    Cadastre-se
-                </button>
-            </p>
-        </div>
-
+        <p className="text-center text-sm">
+          Não tem uma conta?{' '}
+          <button onClick={onSwitchToRegister} className="font-medium text-blue-600 hover:underline">
+            Crie uma agora
+          </button>
+        </p>
       </NeumorphicCard>
     </div>
   );

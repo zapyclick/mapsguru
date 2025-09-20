@@ -1,16 +1,13 @@
-// FIX: Corrected the React import statement by removing the erroneous 'a,'.
-import React, {
-  useState,
-  useEffect
-} from 'react';
-import {
-  useLocalStorage
-} from './hooks/useLocalStorage';
-import {
-  Post,
-  BusinessProfile,
-  User
-} from './types';
+
+import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
+// Hooks and services
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { onAuthChange, signOut, getUserProfile } from './services/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
+
+// Components
 import Header from './components/Header';
 import PostCreator from './components/PostCreator';
 import PostPreview from './components/PostPreview';
@@ -18,149 +15,125 @@ import BusinessProfileSetup from './components/BusinessProfileSetup';
 import ReviewAssistant from './components/ReviewAssistant';
 import QnaAssistant from './components/QnaAssistant';
 import ProductAssistant from './components/ProductAssistant';
-import SubscriptionManager from './components/SubscriptionManager';
 import Login from './components/Login';
 import Register from './components/Register';
-import {
-  auth,
-  db
-} from './services/firebase';
-import {
-  onAuthStateChanged,
-  signOut
-} from "firebase/auth";
-import {
-  doc,
-  getDoc,
-  updateDoc
-} from "firebase/firestore";
+import SubscriptionManager from './components/SubscriptionManager';
 
+// Types
+import { Post, BusinessProfile, User } from './types';
+
+// Define the different views/tools available in the app
 export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription';
 
-const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState < User | null > (null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [currentPost, setCurrentPost] = useState < Post | null > (null);
-  const [businessProfile, setBusinessProfile] = useLocalStorage < BusinessProfile > ('businessProfile', {
-    name: '',
-    whatsappNumber: '',
-    gbpLink: '',
-    logoUrl: null,
-  });
-  const [activeView, setActiveView] = useState < View > ('posts');
+// Initial state for a new post
+const getInitialPostState = (): Post => ({
+  id: uuidv4(),
+  keywords: '',
+  text: '',
+  imageUrl: null,
+  imageDescription: null,
+  imageText: null,
+  includeLogo: true,
+});
+
+// Initial state for the business profile
+const initialProfileState: BusinessProfile = {
+  name: '',
+  whatsappNumber: '',
+  gbpLink: '',
+  logoUrl: null,
+};
+
+function App() {
+  // Authentication state
+  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'authenticated'>('loading');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoginView, setIsLoginView] = useState(true);
+
+  // App state
+  const [activeView, setActiveView] = useLocalStorage<View>('activeView', 'posts');
+  const [activePost, setActivePost] = useState<Post>(getInitialPostState);
+  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile', initialProfileState);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [authView, setAuthView] = useState < 'login' | 'register' > ('login');
 
+  // Effect to handle authentication changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthChange(async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // User is signed in, fetch their data from Firestore
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          setCurrentUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email!,
-            ...userDocSnap.data()
-          } as User);
-        } else {
-          // This case might happen if a user is created in Auth but not Firestore
-          console.error("No such user document in Firestore!");
-          setCurrentUser(null);
+        const userProfile = await getUserProfile(firebaseUser.uid);
+        setCurrentUser(userProfile);
+        setAuthStatus('authenticated');
+        // Check if the business profile is empty on first login to prompt user
+        const storedProfile = localStorage.getItem('businessProfile');
+        if (!storedProfile || !JSON.parse(storedProfile).name) {
+          setIsProfileModalOpen(true);
         }
       } else {
-        // User is signed out
         setCurrentUser(null);
+        setAuthStatus('unauthenticated');
       }
-      setIsLoadingAuth(false);
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-
-  const handleProfileChange = (updatedProfile: Partial < BusinessProfile > ) => {
-    setBusinessProfile(prev => ({ ...prev,
-      ...updatedProfile
-    }));
-  };
-
-  const createNewPostObject = (): Post => {
-    return {
-      id: `post_${Date.now()}`,
-      keywords: '',
-      text: '',
-      imageUrl: null,
-      imageDescription: null,
-      imageText: null,
-      includeLogo: true,
-    };
-  };
-
-  const handleCreateNewPost = () => {
-    setCurrentPost(createNewPostObject());
-  };
-
-  // On first load, if no current post, create one.
-  useEffect(() => {
-    if (!currentPost) {
-      handleCreateNewPost();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handlePostUpdate = (updatedPost: Post) => {
-    setCurrentPost(updatedPost);
-  };
-
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error signing out: ", error);
+    await signOut();
+    // Clear local storage on logout for security
+    localStorage.removeItem('businessProfile');
+    localStorage.removeItem('activeView');
+  };
+
+  const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
+    setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
+  };
+
+  const handleNewPost = () => {
+    setActivePost(getInitialPostState());
+  };
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'reviews':
+        return <ReviewAssistant businessProfile={businessProfile} />;
+      case 'qna':
+        return <QnaAssistant businessProfile={businessProfile} />;
+      case 'products':
+        return <ProductAssistant businessProfile={businessProfile} />;
+      case 'subscription':
+        return <SubscriptionManager currentUser={currentUser} onUpgradePlan={(email, plan) => console.log(`Upgrading ${email} to ${plan}`)} />;
+      case 'posts':
+      default:
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <PostCreator
+              post={activePost}
+              businessProfile={businessProfile}
+              onPostChange={setActivePost}
+              onNewPost={handleNewPost}
+            />
+            <PostPreview post={activePost} businessProfile={businessProfile} />
+          </div>
+        );
     }
   };
 
-  const handleUpgradePlan = async (userEmail: string, newPlan: 'pro' | 'premium') => {
-    if (!currentUser) return;
-
-    const userDocRef = doc(db, "users", currentUser.uid);
-
-    try {
-      await updateDoc(userDocRef, {
-        plan: newPlan,
-        trialEndDate: '' // Clear trial end date on upgrade
-      });
-
-      // Update the local state to reflect the change immediately
-      setCurrentUser(prevUser => prevUser ? { ...prevUser,
-        plan: newPlan,
-        trialEndDate: ''
-      } : null);
-    } catch (error) {
-      console.error("Error updating plan in Firestore: ", error);
-    }
-  };
-
-  if (isLoadingAuth) {
-    return (
-      <div className="bg-slate-200 dark:bg-slate-900 min-h-screen flex items-center justify-center">
-        <p className="text-slate-800 dark:text-slate-200">Carregando...</p>
-      </div>
+  // Loading state while checking auth
+  if (authStatus === 'loading') {
+    return <div className="min-h-screen bg-slate-200 dark:bg-slate-900 flex items-center justify-center"><p>Carregando...</p></div>;
+  }
+  
+  // Auth pages if not authenticated
+  if (authStatus === 'unauthenticated') {
+    return isLoginView ? (
+      <Login onLoginSuccess={() => {}} onSwitchToRegister={() => setIsLoginView(false)} />
+    ) : (
+      <Register onRegisterSuccess={() => {}} onSwitchToLogin={() => setIsLoginView(true)} />
     );
   }
 
-  if (!currentUser) {
-    if (authView === 'login') {
-      return <Login onNavigateToRegister={() => setAuthView('register')} />;
-    }
-    return <Register onNavigateToLogin={() => setAuthView('login')} />;
-  }
-
+  // Main application view
   return (
-    <div className="bg-slate-200 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
       <Header
         activeView={activeView}
         setActiveView={setActiveView}
@@ -168,57 +141,13 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         currentUser={currentUser}
       />
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-
-          {/* Conditional Content */}
-          {activeView === 'posts' && currentPost && (
-            <>
-              <PostCreator
-                post={currentPost}
-                onPostChange={handlePostUpdate}
-                onNewPost={handleCreateNewPost}
-                businessProfile={businessProfile}
-              />
-              <PostPreview
-                post={currentPost}
-                businessProfile={businessProfile}
-              />
-            </>
-          )}
-
-          {activeView === 'reviews' && (
-            <ReviewAssistant businessProfile={businessProfile} />
-          )}
-
-          {activeView === 'qna' && (
-            <QnaAssistant businessProfile={businessProfile} />
-          )}
-
-          {activeView === 'products' && (
-            <ProductAssistant businessProfile={businessProfile} />
-          )}
-
-          {activeView === 'subscription' && (
-            <SubscriptionManager
-              currentUser={currentUser}
-              onUpgradePlan={handleUpgradePlan}
-            />
-          )}
-
-        </div>
+      <main className="p-4 sm:p-6 lg:p-8">
+        {renderActiveView()}
       </main>
 
-      {/* Business Profile Modal */}
       {isProfileModalOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4"
-          onClick={() => setIsProfileModalOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl"
-          >
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl">
             <BusinessProfileSetup
               profile={businessProfile}
               onProfileChange={handleProfileChange}
@@ -229,6 +158,6 @@ const App: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 export default App;

@@ -41,13 +41,11 @@ export function useLocalStorage<T,>(key: string, initialValue: T): [T, React.Dis
   // useEffect to update localStorage when the state changes
   useEffect(() => {
     try {
-      const valueToStore =
-        typeof storedValue === 'function'
-          ? storedValue(storedValue)
-          : storedValue;
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      // Simplification: directly stringify the current state value.
+      // This is safer and avoids potential issues with complex state types.
+      window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
-      console.error(error);
+      console.error(`Error saving to localStorage for key "${key}":`, error);
     }
   }, [key, storedValue]);
 

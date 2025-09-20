@@ -1,52 +1,61 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zmaps - Gestão inteligente para negócios locais</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            boxShadow: {
-              'light-neumorphic': '5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff',
-              'light-neumorphic-inset': 'inset 5px 5px 10px #d1d9e6, inset -5px -5px 10px #ffffff',
-              'dark-neumorphic': '5px 5px 10px #1a202c, -5px -5px 10px #2d3748',
-              'dark-neumorphic-inset': 'inset 5px 5px 10px #1a202c, inset -5px -5px 10px #2d3748',
-            }
-          },
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zmaps gestão inteligente para negócios locais</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS via CDN para restaurar o estilo -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          boxShadow: {
+            'light-neumorphic': '9px 9px 16px #cbced1, -9px -9px 16px #ffffff',
+            'light-neumorphic-inset': 'inset 9px 9px 16px #cbced1, inset -9px -9px 16px #ffffff',
+            'dark-neumorphic': '9px 9px 16px #1a1a1a, -9px -9px 16px #2a2a2a',
+            'dark-neumorphic-inset': 'inset 9px 9px 16px #1a1a1a, inset -9px -9px 16px #2a2a2a',
+          }
         }
       }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    }
+  </script>
   <script type="importmap">
 {
   "imports": {
     "react/jsx-runtime": "https://aistudiocdn.com/react@^19.1.1/jsx-runtime",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.19.0",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
-    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.3.0/"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0",
+    "firebase/compat/app": "https://aistudiocdn.com/firebase@^10.12.2/compat/app",
+    "firebase/compat/auth": "https://aistudiocdn.com/firebase@^10.12.2/compat/auth",
+    "firebase/compat/firestore": "https://aistudiocdn.com/firebase@^10.12.2/compat/firestore",
+  
   }
 }
 </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 1,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+  </style>
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+<body class="bg-slate-200 dark:bg-slate-900">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>
