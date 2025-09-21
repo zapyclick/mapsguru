@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { User } from '../types.ts';
+import React, { useState, useEffect } from 'react';
+import { User, UserDocument } from '../types.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { db } from '../services/firebase.ts';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
 // ===================================================================================
 // ATENÇÃO: É AQUI QUE VOCÊ COLOCA SEUS LINKS DE PAGAMENTO!
@@ -25,19 +29,31 @@ interface BillingCycles {
   premium: 'monthly' | 'yearly';
 }
 
-const mockUser: User = {
-    uid: 'mock-user-id',
-    email: 'usuario@exemplo.com',
-    plan: 'trial',
-    registrationDate: new Date().toISOString(),
-    trialEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-};
-
 const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
-  const [currentUser] = useState<User | null>(mockUser);
+  const { user } = useAuth();
+  const [userDoc, setUserDoc] = useState<UserDocument | null>(null);
+  const [loading, setLoading] = useState(true);
   const [billingCycles, setBillingCycles] = useState<BillingCycles>({ pro: 'monthly', premium: 'monthly' });
 
-  if (!currentUser) {
+  useEffect(() => {
+    const fetchUserDocument = async () => {
+      if (user) {
+        setLoading(true);
+        const userRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          setUserDoc(docSnap.data() as UserDocument);
+        } else {
+          console.error("No such user document!");
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchUserDocument();
+  }, [user]);
+
+  if (loading || !userDoc || !user) {
     return (
       <NeumorphicCard className="p-6 text-center">
         <p>Carregando informações do usuário...</p>
@@ -45,7 +61,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
     );
   }
 
-  const getPlanName = (plan: User['plan']) => {
+  const getPlanName = (plan: UserDocument['plan']) => {
     switch (plan) {
       case 'trial':
         return 'Plano Teste (Free)';
@@ -69,9 +85,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
   }
 
   const TrialStatus = () => {
-    if (currentUser.plan !== 'trial' || !currentUser.trialEndDate) return null;
+    if (userDoc.plan !== 'trial' || !userDoc.trialEndDate) return null;
 
-    const endDate = new Date(currentUser.trialEndDate);
+    const endDate = new Date(userDoc.trialEndDate);
     const now = new Date();
     const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -103,8 +119,8 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
           <NeumorphicCard className="!rounded-xl p-6 border border-blue-500/30">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
-                <p className="text-xl font-semibold text-blue-600 dark:text-blue-400">{getPlanName(currentUser.plan)}</p>
-                <p className="text-sm text-slate-700 dark:text-slate-300">Email: {currentUser.email}</p>
+                <p className="text-xl font-semibold text-blue-600 dark:text-blue-400">{getPlanName(userDoc.plan)}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">Email: {user.email}</p>
               </div>
               <div className="text-left sm:text-right">
                 <TrialStatus />

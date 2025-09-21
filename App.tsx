@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // Hooks and services
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
+import { useAuth } from './context/AuthContext.tsx';
 
 // Components
 import Header from './components/Header.tsx';
@@ -14,6 +14,7 @@ import ReviewAssistant from './components/ReviewAssistant.tsx';
 import QnaAssistant from './components/QnaAssistant.tsx';
 import ProductAssistant from './components/ProductAssistant.tsx';
 import SubscriptionManager from './components/SubscriptionManager.tsx';
+import Auth from './components/Auth.tsx';
 
 // Types
 import { Post, BusinessProfile } from './types.ts';
@@ -41,19 +42,32 @@ const initialProfileState: BusinessProfile = {
 };
 
 function App() {
+  const { user, loading } = useAuth();
+  
   // App state
-  const [activeView, setActiveView] = useLocalStorage<View>('activeView', 'posts');
+  const [activeView, setActiveView] = useLocalStorage<View>(`activeView_${user?.uid || 'guest'}`, 'posts');
   const [activePost, setActivePost] = useState<Post>(getInitialPostState);
-  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile', initialProfileState);
+  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>(`businessProfile_${user?.uid || 'guest'}`, initialProfileState);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    // Check if the business profile is empty on first load to prompt user
-    const storedProfile = localStorage.getItem('businessProfile');
-    if (!storedProfile || !JSON.parse(storedProfile).name) {
-      setIsProfileModalOpen(true);
+    if (user) {
+      // Check if the business profile is empty on first load to prompt user
+      const storedProfile = localStorage.getItem(`businessProfile_${user.uid}`);
+      if (!storedProfile || !JSON.parse(storedProfile).name) {
+        setIsProfileModalOpen(true);
+      }
     }
-  }, []);
+  }, [user]);
+
+  // When user logs out, reset state to avoid showing previous user's data
+  useEffect(() => {
+    if (!user) {
+      setActiveView('posts');
+      setActivePost(getInitialPostState());
+      setBusinessProfile(initialProfileState);
+    }
+  }, [user, setActiveView, setBusinessProfile]);
 
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
@@ -89,6 +103,19 @@ function App() {
         );
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-200 dark:bg-slate-900 flex items-center justify-center">
+        <p className="text-slate-800 dark:text-slate-200">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
+
 
   // Main application view
   return (

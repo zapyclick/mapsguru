@@ -50,11 +50,17 @@ export interface BusinessProfile {
   logoUrl: string | null;
 }
 
-// Represents a user account, aligned with Firebase Auth and Firestore
+// Represents a user account, aligned with Firebase Auth
 export interface User {
-  uid: string; // Firebase Authentication User ID
-  email: string;
-  registrationDate: string; // ISO 8601 string format
-  trialEndDate: string;   // ISO 8601 string format
-  plan: 'trial' | 'pro' | 'premium' | 'admin';
+  uid: string;
+  email: string | null;
+}
+
+// Represents the user's data stored in Firestore
+export interface UserDocument {
+    uid: string;
+    email: string;
+    registrationDate: string; // ISO 8601 string format
+    trialEndDate: string;   // ISO 8601 string format
+    plan: 'trial' | 'pro' | 'premium' | 'admin';
 }

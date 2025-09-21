@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { NeumorphicCard } from './NeumorphicCard.tsx';
 import { IconButton } from './IconButton.tsx';
 import { View } from '../App.tsx';
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileClick }) => {
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
   const [isFeaturesMenuOpen, setIsFeaturesMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const featuresMenuRef = useRef<HTMLDivElement>(null);
@@ -91,6 +93,10 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
         <span className="material-symbols-outlined">
           {theme === 'light' ? 'dark_mode' : 'light_mode'}
         </span>
+      </IconButton>
+
+       <IconButton onClick={logout} aria-label="Sair">
+        <span className="material-symbols-outlined">logout</span>
       </IconButton>
     </>
   );
