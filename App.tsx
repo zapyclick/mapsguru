@@ -42,33 +42,29 @@ const initialProfileState: BusinessProfile = {
 };
 
 function App() {
-  const { user, loading } = useAuth();
-  
+  const { isAuthenticated, user } = useAuth();
+
+  // Create user-specific keys for localStorage to ensure data isolation
+  const userPrefix = isAuthenticated && user ? user.uid : 'guest';
+  const activeViewKey = `activeView_${userPrefix}`;
+  const businessProfileKey = `businessProfile_${userPrefix}`;
+
   // App state
-  const [activeView, setActiveView] = useLocalStorage<View>(`activeView_${user?.uid || 'guest'}`, 'posts');
+  const [activeView, setActiveView] = useLocalStorage<View>(activeViewKey, 'posts');
   const [activePost, setActivePost] = useState<Post>(getInitialPostState);
-  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>(`businessProfile_${user?.uid || 'guest'}`, initialProfileState);
+  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>(businessProfileKey, initialProfileState);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      // Check if the business profile is empty on first load to prompt user
-      const storedProfile = localStorage.getItem(`businessProfile_${user.uid}`);
+    // On first load with authentication, prompt for profile setup if empty.
+    if (isAuthenticated) {
+      // Check the user-specific profile key in localStorage
+      const storedProfile = localStorage.getItem(businessProfileKey);
       if (!storedProfile || !JSON.parse(storedProfile).name) {
         setIsProfileModalOpen(true);
       }
     }
-  }, [user]);
-
-  // When user logs out, reset state to avoid showing previous user's data
-  useEffect(() => {
-    if (!user) {
-      setActiveView('posts');
-      setActivePost(getInitialPostState());
-      setBusinessProfile(initialProfileState);
-    }
-  }, [user, setActiveView, setBusinessProfile]);
-
+  }, [isAuthenticated, businessProfileKey]);
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -104,18 +100,9 @@ function App() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-200 dark:bg-slate-900 flex items-center justify-center">
-        <p className="text-slate-800 dark:text-slate-200">Carregando...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!isAuthenticated) {
     return <Auth />;
   }
-
 
   // Main application view
   return (

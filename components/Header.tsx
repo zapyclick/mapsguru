@@ -74,17 +74,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
         )}
       </div>
 
-      <a href="https://zapy.click" target="_blank" rel="noopener noreferrer" title="Dicas" className="w-12 h-12 rounded-full flex items-center justify-center 
-        bg-slate-200 dark:bg-slate-800 
-        text-slate-600 dark:text-slate-300 
-        shadow-light-neumorphic dark:shadow-dark-neumorphic 
-        hover:shadow-light-neumorphic-inset dark:hover:shadow-dark-neumorphic-inset 
-        active:shadow-light-neumorphic-inset dark:active:shadow-dark-neumorphic-inset
-        transition-all duration-200 ease-in-out
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-        <span className="material-symbols-outlined">help</span>
-      </a>
-
       <IconButton onClick={onProfileClick} aria-label="Perfil do Negócio">
         <span className="material-symbols-outlined">storefront</span>
       </IconButton>

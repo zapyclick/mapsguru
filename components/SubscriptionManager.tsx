@@ -1,10 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, UserDocument } from '../types.ts';
-import { useAuth } from '../context/AuthContext.tsx';
+import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
-import { db } from '../services/firebase.ts';
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 
 // ===================================================================================
 // ATENÇÃO: É AQUI QUE VOCÊ COLOCA SEUS LINKS DE PAGAMENTO!
@@ -22,116 +17,32 @@ const PAYMENT_LINKS = {
   },
 };
 
-interface SubscriptionManagerProps {}
-
 interface BillingCycles {
   pro: 'monthly' | 'yearly';
   premium: 'monthly' | 'yearly';
 }
 
-const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
-  const { user } = useAuth();
-  const [userDoc, setUserDoc] = useState<UserDocument | null>(null);
-  const [loading, setLoading] = useState(true);
+const SubscriptionManager: React.FC = () => {
   const [billingCycles, setBillingCycles] = useState<BillingCycles>({ pro: 'monthly', premium: 'monthly' });
 
-  useEffect(() => {
-    const fetchUserDocument = async () => {
-      if (user) {
-        setLoading(true);
-        const userRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userRef);
-        if (docSnap.exists()) {
-          setUserDoc(docSnap.data() as UserDocument);
-        } else {
-          console.error("No such user document!");
-        }
-        setLoading(false);
-      }
-    };
-
-    fetchUserDocument();
-  }, [user]);
-
-  if (loading || !userDoc || !user) {
-    return (
-      <NeumorphicCard className="p-6 text-center">
-        <p>Carregando informações do usuário...</p>
-      </NeumorphicCard>
-    );
-  }
-
-  const getPlanName = (plan: UserDocument['plan']) => {
-    switch (plan) {
-      case 'trial':
-        return 'Plano Teste (Free)';
-      case 'pro':
-        return 'Plano Pro';
-      case 'premium':
-        return 'Plano Premium';
-      case 'admin':
-        return 'Administrador';
-      default:
-        return 'Desconhecido';
-    }
-  };
-  
   const handleUpgradeClick = (paymentUrl: string) => {
     if (!paymentUrl || paymentUrl.includes('SEU_LINK_DE_PAGAMENTO_AQUI')) {
       alert('O link de pagamento para este plano ainda não foi configurado.');
       return;
     }
     window.open(paymentUrl, '_blank');
-  }
-
-  const TrialStatus = () => {
-    if (userDoc.plan !== 'trial' || !userDoc.trialEndDate) return null;
-
-    const endDate = new Date(userDoc.trialEndDate);
-    const now = new Date();
-    const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysRemaining <= 0) {
-      return (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          Seu período de teste expirou.
-        </p>
-      );
-    }
-    return (
-      <p className="text-sm text-slate-600 dark:text-slate-400">
-        Seu teste termina em <strong>{daysRemaining} dia{daysRemaining !== 1 ? 's' : ''}</strong>.
-      </p>
-    );
   };
 
   return (
     <>
       <NeumorphicCard className="p-6 space-y-8">
         <div>
-          <h2 className="text-2xl font-bold">Gerenciamento de Plano</h2>
-          <p className="text-slate-600 dark:text-slate-400">Veja seu plano atual e opções de upgrade.</p>
-        </div>
-
-        {/* Current Plan Section */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-lg">Seu Plano Atual</h3>
-          <NeumorphicCard className="!rounded-xl p-6 border border-blue-500/30">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <p className="text-xl font-semibold text-blue-600 dark:text-blue-400">{getPlanName(userDoc.plan)}</p>
-                <p className="text-sm text-slate-700 dark:text-slate-300">Email: {user.email}</p>
-              </div>
-              <div className="text-left sm:text-right">
-                <TrialStatus />
-              </div>
-            </div>
-          </NeumorphicCard>
+          <h2 className="text-2xl font-bold">Planos e Assinaturas</h2>
+          <p className="text-slate-600 dark:text-slate-400">Escolha o plano que melhor se adapta às suas necessidades.</p>
         </div>
         
         {/* Upgrade Section */}
         <div className="space-y-4 pt-6 border-t border-slate-300 dark:border-slate-700">
-            <h3 className="font-bold text-lg">Opções de Upgrade</h3>
             <div className="grid md:grid-cols-3 gap-6">
                 {/* Pro Plan Card */}
                 <NeumorphicCard className="p-6 space-y-4 !rounded-xl border-2 border-transparent hover:border-blue-500 transition-colors flex flex-col">
@@ -152,7 +63,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
                             <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">check_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.pro[billingCycles.pro])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
+                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.pro[billingCycles.pro])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Assinar Agora</button>
                 </NeumorphicCard>
 
                 {/* Premium Plan Card */}
@@ -176,7 +87,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = () => {
                              <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">add_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.premium[billingCycles.premium])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Fazer Upgrade</button>
+                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.premium[billingCycles.premium])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Assinar Agora</button>
                 </NeumorphicCard>
 
                 {/* Enterprise Plan Card */}

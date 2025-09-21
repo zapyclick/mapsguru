@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,22 +13,12 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+
     try {
       await login(email, password);
+      // O sucesso redireciona automaticamente via `App.tsx`
     } catch (err: any) {
-      // Mapeia os códigos de erro do Firebase para mensagens amigáveis
-      switch (err.code) {
-        case 'auth/user-not-found':
-        case 'auth/invalid-credential':
-          setError('Email ou senha inválidos.');
-          break;
-        case 'auth/invalid-email':
-          setError('O formato do email é inválido.');
-          break;
-        default:
-          setError('Ocorreu um erro ao fazer login. Tente novamente.');
-          break;
-      }
+      setError(err.message || 'Ocorreu um erro ao fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -45,12 +35,12 @@ const Login: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
             placeholder="seu@email.com"
             className="w-full bg-transparent p-3 outline-none"
           />
         </NeumorphicCardInset>
       </div>
-
       <div className="space-y-2">
         <label htmlFor="login-password" className="font-semibold block mb-2">Senha</label>
         <NeumorphicCardInset className="p-1 rounded-lg">
@@ -60,6 +50,7 @@ const Login: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             placeholder="********"
             className="w-full bg-transparent p-3 outline-none"
           />

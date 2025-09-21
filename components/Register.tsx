@@ -18,24 +18,11 @@ const Register: React.FC = () => {
     }
     setError(null);
     setIsLoading(true);
+
     try {
       await register(email, password);
     } catch (err: any) {
-      // Mapeia os códigos de erro do Firebase para mensagens amigáveis
-      switch (err.code) {
-        case 'auth/email-already-in-use':
-          setError('Este email já está em uso.');
-          break;
-        case 'auth/invalid-email':
-          setError('O formato do email é inválido.');
-          break;
-        case 'auth/weak-password':
-          setError('A senha deve ter pelo menos 6 caracteres.');
-          break;
-        default:
-          setError('Ocorreu um erro ao criar a conta. Tente novamente.');
-          break;
-      }
+      setError(err.message || 'Ocorreu um erro ao criar a conta.');
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +39,7 @@ const Register: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
             placeholder="seu@email.com"
             className="w-full bg-transparent p-3 outline-none"
           />
@@ -67,6 +55,7 @@ const Register: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="new-password"
             placeholder="Mínimo de 6 caracteres"
             className="w-full bg-transparent p-3 outline-none"
           />
@@ -82,6 +71,7 @@ const Register: React.FC = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            autoComplete="new-password"
             placeholder="Repita a senha"
             className="w-full bg-transparent p-3 outline-none"
           />

@@ -1,15 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User as FirebaseUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { auth, db } from '../services/firebase.ts';
-import { User, UserDocument } from '../types.ts';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '../services/firebase.ts';
+import { User } from '../types.ts';
 
 interface AuthContextType {
   user: User | null;
+  isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,7 +20,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Escuta as mudanças no estado de autenticação
+    // Se o Firebase não estiver configurado, não faz nada e libera a UI
+    if (!isFirebaseConfigured()) {
+        console.warn("Firebase não está configurado. O sistema de autenticação está desabilitado. Cole suas credenciais em 'services/firebase.ts'.");
+        setLoading(false);
+        return;
+    }
+    
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         setUser({
@@ -32,46 +39,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    // Limpa a inscrição quando o componente é desmontado
+    // Limpa o listener quando o componente é desmontado
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+  const register = async (email: string, password: string): Promise<void> => {
+     if (!isFirebaseConfigured()) {
+        throw new Error("A configuração do Firebase está incompleta. Verifique o arquivo 'services/firebase.ts'.");
+    }
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = userCredential.user;
+        
+        // Cria um documento de usuário no Firestore
+        await setDoc(doc(db, 'users', newUser.uid), {
+            uid: newUser.uid,
+            email: newUser.email,
+            createdAt: serverTimestamp(),
+            plan: 'free',
+        });
+
+    } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+            throw new Error('Este email já está em uso.');
+        } else if (error.code === 'auth/weak-password') {
+            throw new Error('A senha deve ter pelo menos 6 caracteres.');
+        }
+        throw new Error('Ocorreu um erro ao criar a conta.');
+    }
   };
 
-  const register = async (email: string, password: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const newUser = userCredential.user;
-
-    // Cria um documento para o novo usuário no Firestore
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14); // Período de teste de 14 dias
-
-    const userDoc: UserDocument = {
-      uid: newUser.uid,
-      email: newUser.email || '',
-      registrationDate: new Date().toISOString(),
-      trialEndDate: trialEndDate.toISOString(),
-      plan: 'trial',
-    };
-
-    await setDoc(doc(db, "users", newUser.uid), userDoc);
+  const login = async (email: string, password: string): Promise<void> => {
+    if (!isFirebaseConfigured()) {
+        throw new Error("A configuração do Firebase está incompleta. Verifique o arquivo 'services/firebase.ts'.");
+    }
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            throw new Error('Email ou senha incorretos.');
+        }
+        throw new Error('Ocorreu um erro ao fazer login.');
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (isFirebaseConfigured()) {
+        await signOut(auth);
+    }
+    setUser(null);
   };
 
+  const isAuthenticated = !!user;
+  
   const value = {
     user,
+    isAuthenticated,
     loading,
     login,
     register,
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {
