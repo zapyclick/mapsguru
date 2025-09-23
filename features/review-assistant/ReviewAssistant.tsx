@@ -33,9 +33,14 @@ const ReviewAssistant: React.FC<ReviewAssistantProps> = ({ businessProfile }) =>
 
     setIsLoading(true);
     setGeneratedResponse('');
-    const response = await generateReviewResponse(reviewText, rating, businessProfile);
-    setGeneratedResponse(response);
-    setIsLoading(false);
+    try {
+        const response = await generateReviewResponse(reviewText, rating, businessProfile);
+        setGeneratedResponse(response);
+    } catch (error: any) {
+        setGeneratedResponse(`Ocorreu um erro: ${error.message}`);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleCopy = async () => {

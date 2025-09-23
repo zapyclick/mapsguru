@@ -33,9 +33,14 @@ const ProductAssistant: React.FC<ProductAssistantProps> = ({ businessProfile }) 
 
     setIsLoading(true);
     setGeneratedDescription('');
-    const response = await generateProductDescription(productName, keywords, businessProfile);
-    setGeneratedDescription(response);
-    setIsLoading(false);
+    try {
+        const response = await generateProductDescription(productName, keywords, businessProfile);
+        setGeneratedDescription(response);
+    } catch (error: any) {
+        setGeneratedDescription(`Ocorreu um erro: ${error.message}`);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleCopy = async () => {

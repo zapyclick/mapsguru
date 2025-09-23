@@ -2,7 +2,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 // Usaremos initializeFirestore para aplicar configurações específicas
-import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+// FIX: Importa persistentSingleTabManager para configurar corretamente a persistência de aba única.
+import { initializeFirestore, persistentLocalCache, persistentSingleTabManager } from 'firebase/firestore';
 
 // ===================================================================================
 // ATENÇÃO: COLE SUAS CREDENCIAIS DO FIREBASE AQUI
@@ -29,15 +30,16 @@ const app = initializeApp(firebaseConfig);
 // Exporta os serviços que serão usados no aplicativo
 export const auth = getAuth(app);
 
-// Inicializa o Firestore com long polling habilitado.
-// Isso força a conexão via HTTPS padrão, o que pode contornar problemas de rede
-// (como firewalls ou proxies) que às vezes bloqueiam a conexão gRPC-Web padrão,
-// levando a erros enganosos de 'indisponível' mesmo com uma internet estável.
-// A sincronização multi-tab foi desativada para simplificar a configuração e
-// resolver potenciais problemas de conexão, mantendo o cache offline para uma única aba.
+// Inicializa o Firestore com long polling forçado e cache de aba única.
+// O `experimentalForceLongPolling` é uma configuração mais agressiva que força o SDK
+// a usar o método de conexão HTTPS, que é mais robusto em redes restritivas
+// (com firewalls, proxies, etc.) onde a detecção automática pode falhar.
+// Embora preterido, é a solução mais eficaz para o erro '[code=unavailable]'.
+// O gerenciador de abas único (`persistentSingleTabManager`) previne a sincronização do
+// cache entre múltiplas abas, o que aumenta a estabilidade.
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-  localCache: persistentLocalCache()
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
 });
 
 

@@ -28,9 +28,14 @@ const QnaAssistant: React.FC<QnaAssistantProps> = ({ businessProfile }) => {
 
     setIsLoading(true);
     setGeneratedAnswer('');
-    const response = await generateQnaResponse(question, businessProfile);
-    setGeneratedAnswer(response);
-    setIsLoading(false);
+    try {
+        const response = await generateQnaResponse(question, businessProfile);
+        setGeneratedAnswer(response);
+    } catch (error: any) {
+        setGeneratedAnswer(`Ocorreu um erro: ${error.message}`);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleCopy = async () => {

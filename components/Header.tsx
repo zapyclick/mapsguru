@@ -25,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     qna: 'Gerador de Q&A',
     products: 'Catálogo de Produtos',
     subscription: 'Meu Plano',
+    pdf: 'Salvar Instruções (PDF)',
   };
 
   // Close menus when clicking outside
@@ -91,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
   );
 
   return (
-    <div className="m-4 sm:m-6 lg:m-8">
+    <div className="m-4 sm:m-6 lg:m-8 print:hidden">
         <NeumorphicCard as="header" className="p-4 !rounded-xl">
         <div className="flex justify-between items-center">
             {/* Left Side: Logo and Title */}

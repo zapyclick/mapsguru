@@ -46,6 +46,7 @@ interface PostPreviewProps {
 
 const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
     const [copyStatus, setCopyStatus] = useState<'idle' | 'processing' | 'success'>('idle');
+    const [isCanvasReady, setIsCanvasReady] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const { name, logoUrl } = businessProfile;
@@ -57,6 +58,8 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
     useEffect(() => {
       const drawFinalImage = async () => {
           if (!imageUrl || !canvasRef.current) return;
+          
+          setIsCanvasReady(false); // Canvas is being redrawn, so it's not ready
   
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
@@ -75,7 +78,6 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
           try {
               const mainImage = await loadImage(imageUrl);
   
-              // Set canvas dimensions to image dimensions for full quality
               canvas.width = mainImage.naturalWidth;
               canvas.height = mainImage.naturalHeight;
   
@@ -127,8 +129,8 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
                       }
                   });
                   
-                  const paddingX = responsiveFontSize * 0.4; // Horizontal padding
-                  const paddingY = responsiveFontSize * 0.2; // Vertical padding (thinner)
+                  const paddingX = responsiveFontSize * 0.4;
+                  const paddingY = responsiveFontSize * 0.2;
   
                   if (backgroundColor && backgroundColor !== '#00000000') {
                       ctx.fillStyle = backgroundColor;
@@ -138,7 +140,7 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
                           -totalTextHeight / 2 - paddingY,
                           maxWidth + paddingX * 2,
                           totalTextHeight + paddingY * 2,
-                          cornerRadius * (responsiveFontSize / 50) // Scale radius
+                          cornerRadius * (responsiveFontSize / 50)
                       );
                   }
                   
@@ -147,7 +149,7 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
                       
                       if (strokeWidth > 0) {
                           ctx.strokeStyle = strokeColor;
-                          ctx.lineWidth = strokeWidth * (responsiveFontSize / 50); // Scale stroke with font size
+                          ctx.lineWidth = strokeWidth * (responsiveFontSize / 50);
                           ctx.strokeText(line, 0, lineY);
                       }
                      
@@ -159,6 +161,21 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
               }
           } catch (mainImageError) {
               console.error("Failed to load image for canvas:", mainImageError);
+              // If the main image fails, draw an error message on the canvas
+              // to prevent downloading a broken/old image.
+              canvas.width = 1280; // Default size for error message
+              canvas.height = 720;
+              ctx.fillStyle = '#f3f4f6'; // bg-slate-100
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.fillStyle = '#ef4444'; // text-red-500
+              ctx.font = 'bold 48px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('Erro ao carregar imagem', canvas.width / 2, canvas.height / 2 - 30);
+              ctx.font = '24px sans-serif';
+              ctx.fillText('A URL da imagem pode estar quebrada ou ser inválida.', canvas.width / 2, canvas.height / 2 + 30);
+          } finally {
+              setIsCanvasReady(true); // Drawing finished (or failed), canvas is now ready for download
           }
       };
   
@@ -167,7 +184,7 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
 
 
     const handleCopyAndDownload = async () => {
-        if (!text || copyStatus !== 'idle') return;
+        if (!text || copyStatus !== 'idle' || !isCanvasReady) return;
     
         setCopyStatus('processing');
 
@@ -175,43 +192,34 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
         const whatsappLinkRegex = /https:\/\/wa\.me\/[^\s]+/;
         const match = text.match(whatsappLinkRegex);
         
-        // If a WhatsApp link is found and the text ends with it (ignoring trailing whitespace)
-        // add a newline character to the copied text for better compatibility.
         if (match && text.trim().endsWith(match[0])) {
             textToCopy = text.trim() + '\n';
         }
     
         try {
-          // 1. Copy formatted text to clipboard
           await navigator.clipboard.writeText(textToCopy);
     
-          // 2. Download image if it exists
           if (imageUrl) {
             const canvas = canvasRef.current;
-            if (canvas) {
-              canvas.toBlob((blob) => {
-                if (!blob) {
-                    throw new Error("Canvas toBlob failed");
-                }
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `gbp-post-image.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-              }, 'image/png');
-            } else { // Fallback for when canvas isn't ready or there's no text overlay
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                const fileExtension = blob.type.split('/')[1] || 'jpg';
-                link.download = `gbp-post-image.${fileExtension}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
+            if (canvas && canvas.width > 0 && canvas.height > 0) {
+              await new Promise<void>((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `gbp-post-image.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    resolve();
+                  } else {
+                    reject(new Error('Falha ao converter canvas para Blob. A imagem pode ser muito grande ou de uma fonte não permitida.'));
+                  }
+                }, 'image/png');
+              });
+            } else {
+              throw new Error('O canvas da imagem não está pronto. Por favor, aguarde a imagem carregar completamente.');
             }
           }
     
@@ -219,7 +227,7 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
     
         } catch (err) {
           console.error('Falha ao copiar ou baixar:', err);
-          alert('Ocorreu um erro. Verifique o console para mais detalhes.');
+          alert(`Ocorreu um erro ao copiar ou baixar. Por favor, tente novamente. Detalhes: ${err instanceof Error ? err.message : String(err)}`);
           setCopyStatus('idle');
         }
     
@@ -229,6 +237,9 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
     };
 
     const getButtonText = () => {
+        if (imageUrl && !isCanvasReady) {
+            return 'Preparando imagem...';
+        }
         switch (copyStatus) {
             case 'processing':
                 return 'Copiando e Baixando...';
@@ -279,7 +290,7 @@ const PostPreview: React.FC<PostPreviewProps> = ({ post, businessProfile }) => {
         <div className="mt-6">
             <button
                 onClick={handleCopyAndDownload}
-                disabled={!text || copyStatus !== 'idle'}
+                disabled={!text || copyStatus !== 'idle' || (!!imageUrl && !isCanvasReady)}
                 className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {getButtonText()}

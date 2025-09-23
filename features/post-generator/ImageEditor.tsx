@@ -165,6 +165,17 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
 
     } catch (mainImageError) {
         console.error("Failed to load main image:", mainImageError);
+        const container = canvas.parentElement;
+        if (!container) return;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        ctx.fillStyle = '#1e293b'; // bg-slate-800
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'red';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Erro ao carregar a imagem de fundo.', canvas.width / 2, canvas.height / 2);
     }
   }, [imageUrl, textState, businessProfile.logoUrl, includeLogo]);
 
@@ -185,7 +196,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || !textState.text) return null;
 
-    const { text, fontSize, bold, italic, x, y, rotation } = textState;
+    const { text, fontSize, bold, italic, x, y, rotation, strokeWidth } = textState;
     const fontStyle = italic ? 'italic' : 'normal';
     const fontWeight = bold ? 'bold' : 'normal';
     const responsiveFontSize = (fontSize / 1000) * canvas.width;
@@ -200,11 +211,17 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
         if (metrics.width > maxWidth) maxWidth = metrics.width;
     });
 
+    // Calculate final box dimensions including padding and stroke
+    const paddingX = responsiveFontSize * 0.4;
+    const paddingY = responsiveFontSize * 0.2;
+    // Stroke is drawn on the edge, so it adds half its width to each side
+    const strokeOffset = strokeWidth > 0 ? (strokeWidth * (responsiveFontSize / 50)) : 0;
+
     return {
         x: (x / 100) * canvas.width,
         y: (y / 100) * canvas.height,
-        width: maxWidth,
-        height: totalTextHeight,
+        width: maxWidth + paddingX * 2 + strokeOffset,
+        height: totalTextHeight + paddingY * 2 + strokeOffset,
         rotation: rotation,
     };
   };
@@ -277,13 +294,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
         return;
     }
     setIsGeneratingSuggestion(true);
-    const suggestion = await generateImageTextSuggestion(postText);
-    if(suggestion && !suggestion.includes("Erro")) {
+    try {
+        const suggestion = await generateImageTextSuggestion(postText);
         handleStateChange('text', suggestion);
-    } else {
-        alert("Não foi possível gerar uma sugestão.");
+    } catch (error: any) {
+        alert(error.message || "Não foi possível gerar uma sugestão.");
+    } finally {
+        setIsGeneratingSuggestion(false);
     }
-    setIsGeneratingSuggestion(false);
   }
 
   if (!isOpen) return null;

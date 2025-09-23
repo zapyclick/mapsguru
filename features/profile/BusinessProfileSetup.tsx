@@ -13,39 +13,37 @@ interface BusinessProfileSetupProps {
 const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({ profile, onProfileChange, onClose }) => {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const debounceTimeoutRef = useRef<number | null>(null);
+  const saveIndicatorTimeoutRef = useRef<number | null>(null);
   const isInitialMount = useRef(true);
 
-  // Efeito para mostrar a mensagem "Salvo" após o usuário parar de digitar
+  // Effect to show "Saved" message after the user stops typing
   useEffect(() => {
-    // Pula o efeito na primeira renderização
+    // Skip the effect on the first render
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
-    // Limpa o timeout existente para reiniciar o temporizador de debounce
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+    // Clear any existing timeout to reset the "saved" indicator logic
+    if (saveIndicatorTimeoutRef.current) {
+      clearTimeout(saveIndicatorTimeoutRef.current);
     }
 
-    // Define um novo timeout
-    debounceTimeoutRef.current = window.setTimeout(() => {
-      setIsSaved(true); // Mostra a mensagem "Salvo"
-      
-      // Define outro timeout para esconder a mensagem após alguns segundos
-      debounceTimeoutRef.current = window.setTimeout(() => {
-        setIsSaved(false);
-      }, 2500); // Esconde a mensagem após 2.5 segundos
-    }, 1000); // Ativa após 1 segundo de inatividade
+    // Show "Saved" message immediately on any change
+    setIsSaved(true);
 
-    // Função de limpeza para limpar o timeout se o componente for desmontado
+    // Set a new timeout to hide the message after a period of inactivity
+    saveIndicatorTimeoutRef.current = window.setTimeout(() => {
+      setIsSaved(false);
+    }, 2500); // Hide after 2.5 seconds of inactivity
+
+    // Cleanup function to clear the timeout if the component unmounts
     return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      if (saveIndicatorTimeoutRef.current) {
+        clearTimeout(saveIndicatorTimeoutRef.current);
       }
     };
-  }, [profile]); // Este efeito é executado sempre que o objeto de perfil muda
+  }, [profile]); // This effect runs whenever the profile object changes
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,11 +53,11 @@ const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({ profile, on
         return;
       }
       
-      // Adiciona uma verificação de tamanho para evitar erros de cota do localStorage
+      // Add a size check to prevent localStorage quota errors
       const fileSizeLimit = 2 * 1024 * 1024; // 2MB
       if (file.size > fileSizeLimit) {
         alert('O arquivo do logo é muito grande. Por favor, use uma imagem com menos de 2MB para garantir que seja salvo corretamente.');
-        // Reseta o input de arquivo para que o usuário possa selecionar um arquivo diferente
+        // Reset the file input so the user can select a different file
         e.target.value = '';
         return;
       }
@@ -83,7 +81,7 @@ const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({ profile, on
                     <span className="material-symbols-outlined text-base">help_outline</span>
                 </IconButton>
             </div>
-            {/* Indicador de status de salvamento */}
+            {/* Save status indicator */}
             <div className={`transition-opacity duration-500 self-center ${isSaved ? 'opacity-100' : 'opacity-0'}`}>
                 <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1 font-medium">
                     <span className="material-symbols-outlined text-base">check_circle</span>

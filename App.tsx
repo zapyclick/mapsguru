@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,12 +17,13 @@ import QnaAssistant from './features/qna-assistant/QnaAssistant.tsx';
 import ProductAssistant from './features/product-assistant/ProductAssistant.tsx';
 import SubscriptionManager from './features/subscription/SubscriptionManager.tsx';
 import Auth from './features/auth/Auth.tsx';
+import InstructionsPDF from './features/pdf-generator/InstructionsPDF.tsx';
 
 // Types
 import { Post, BusinessProfile } from './types/index.ts';
 
 // Define the different views/tools available in the app
-export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription';
+export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription' | 'pdf';
 
 // Initial state for a new post
 const getInitialPostState = (): Post => ({
@@ -160,6 +162,8 @@ function AppContent() {
         return <ProductAssistant businessProfile={businessProfile} />;
       case 'subscription':
         return <SubscriptionManager />;
+      case 'pdf':
+        return <InstructionsPDF />;
       case 'posts':
       default:
         return (

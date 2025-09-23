@@ -42,17 +42,15 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
     }
 
     setIsGeneratingText(true);
-    const generatedText = await generatePostText(post.keywords, businessProfile);
-    
-    // Only increment count if text generation was successful
-    if (generatedText && !generatedText.startsWith("Ocorreu um erro")) {
+    try {
+        const generatedText = await generatePostText(post.keywords, businessProfile);
         handleInputChange('text', generatedText);
         await incrementUserPostCount();
-    } else {
-        handleInputChange('text', generatedText); // Show the error message in the textarea
+    } catch (error: any) {
+        handleInputChange('text', `Ocorreu um erro: ${error.message}`);
+    } finally {
+        setIsGeneratingText(false);
     }
-
-    setIsGeneratingText(false);
   };
   
   const handleImageSelect = (url: string | null, alt: string | null) => {
