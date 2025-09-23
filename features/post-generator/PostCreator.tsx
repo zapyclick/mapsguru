@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Post, BusinessProfile, ImageText } from '../types.ts';
-import { generatePostText } from '../services/geminiService.ts';
-import { useAuth } from '../context/AuthContext.tsx';
+import { Post, BusinessProfile, ImageText } from '../../types/index.ts';
+import { generatePostText } from '../../services/geminiService.ts';
+import { useAuth } from '../../context/AuthContext.tsx';
 import ImageSearch from './ImageSearch.tsx';
 import ImageEditor from './ImageEditor.tsx';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
-import InfoModal from './InfoModal.tsx';
-import { IconButton } from './IconButton.tsx';
+import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
+import InfoModal from '../../components/ui/InfoModal.tsx';
+import { IconButton } from '../../components/ui/IconButton.tsx';
 
 interface PostCreatorProps {
   post: Post;

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Login from './Login.tsx';
 import Register from './Register.tsx';
-import { NeumorphicCard } from './NeumorphicCard.tsx';
-import { isFirebaseConfigured } from '../services/firebase.ts';
+import { NeumorphicCard } from '../../components/ui/NeumorphicCard.tsx';
+import { isFirebaseConfigured } from '../../services/firebase.ts';
 
 const Auth: React.FC = () => {
   const [isRegisterView, setIsRegisterView] = useState(false);

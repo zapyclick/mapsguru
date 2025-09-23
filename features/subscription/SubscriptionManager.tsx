@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
-import { useAuth } from '../context/AuthContext.tsx';
-import { createSubscriptionPreference } from '../services/mercadoPagoService.ts';
+// FIX: Import NeumorphicCardInset which is used in this component.
+import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { createSubscriptionPreference } from '../../services/mercadoPagoService.ts';
 
 // Define os planos disponíveis no aplicativo
 const PLANS = {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, MouseEvent } from 'react';
-import { ImageText, BusinessProfile } from '../types.ts';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
-import { generateImageTextSuggestion } from '../services/geminiService.ts';
+import { ImageText, BusinessProfile } from '../../types/index.ts';
+import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
+import { generateImageTextSuggestion } from '../../services/geminiService.ts';
 
 interface ImageEditorProps {
   isOpen: boolean;

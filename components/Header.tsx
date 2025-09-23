@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
-import { NeumorphicCard } from './NeumorphicCard.tsx';
-import { IconButton } from './IconButton.tsx';
+import { NeumorphicCard } from './ui/NeumorphicCard.tsx';
+import { IconButton } from './ui/IconButton.tsx';
 import { View } from '../App.tsx';
 
 interface HeaderProps {

@@ -1,25 +1,24 @@
+
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // Hooks and services
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { useAuth } from './context/AuthContext.tsx';
-import { AuthProvider } from './context/AuthContext.tsx';
+import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 
 // Components
 import Header from './components/Header.tsx';
-import PostCreator from './components/PostCreator.tsx';
-import PostPreview from './components/PostPreview.tsx';
-import BusinessProfileSetup from './components/BusinessProfileSetup.tsx';
-import ReviewAssistant from './components/ReviewAssistant.tsx';
-import QnaAssistant from './components/QnaAssistant.tsx';
-import ProductAssistant from './components/ProductAssistant.tsx';
-import SubscriptionManager from './components/SubscriptionManager.tsx';
-import Auth from './components/Auth.tsx';
+import PostGenerator from './features/post-generator/PostGenerator.tsx';
+import BusinessProfileSetup from './features/profile/BusinessProfileSetup.tsx';
+import ReviewAssistant from './features/review-assistant/ReviewAssistant.tsx';
+import QnaAssistant from './features/qna-assistant/QnaAssistant.tsx';
+import ProductAssistant from './features/product-assistant/ProductAssistant.tsx';
+import SubscriptionManager from './features/subscription/SubscriptionManager.tsx';
+import Auth from './features/auth/Auth.tsx';
 
 // Types
-import { Post, BusinessProfile } from './types.ts';
+import { Post, BusinessProfile } from './types/index.ts';
 
 // Define the different views/tools available in the app
 export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription';
@@ -42,6 +41,48 @@ const initialProfileState: BusinessProfile = {
   gbpLink: '',
   logoUrl: null,
 };
+
+// Moved outside the component to prevent re-declaration on every render
+const PaymentStatusBanner: React.FC<{
+  status: 'success' | 'failure' | null;
+  onDismiss: () => void;
+}> = ({ status, onDismiss }) => {
+  if (!status) return null;
+
+  const isSuccess = status === 'success';
+  const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50';
+  const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
+  const icon = isSuccess ? 'check_circle' : 'error';
+  const title = isSuccess ? 'Pagamento Aprovado!' : 'Pagamento Falhou';
+  const message = isSuccess 
+    ? 'Seu plano será atualizado em breve. Pode levar alguns instantes para a confirmação.' 
+    : 'Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente.';
+
+  return (
+    <div className={`fixed top-24 right-8 p-4 rounded-lg shadow-lg z-50 ${bgColor} ${textColor} animate-fade-in-out`}>
+      <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined">{icon}</span>
+          <div>
+              <p className="font-bold">{title}</p>
+              <p className="text-sm">{message}</p>
+          </div>
+          <button onClick={onDismiss} className="ml-4">&times;</button>
+      </div>
+       <style>{`
+          @keyframes fade-in-out {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+          }
+          .animate-fade-in-out {
+            animation: fade-in-out 5s ease-in-out forwards;
+          }
+      `}</style>
+    </div>
+  );
+};
+
 
 function App() {
   return (
@@ -122,15 +163,12 @@ function AppContent() {
       case 'posts':
       default:
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <PostCreator
-              post={activePost}
-              businessProfile={businessProfile}
-              onPostChange={setActivePost}
-              onNewPost={handleNewPost}
-            />
-            <PostPreview post={activePost} businessProfile={businessProfile} />
-          </div>
+          <PostGenerator
+            activePost={activePost}
+            setActivePost={setActivePost}
+            handleNewPost={handleNewPost}
+            businessProfile={businessProfile}
+          />
         );
     }
   };
@@ -138,49 +176,11 @@ function AppContent() {
   if (!isAuthenticated) {
     return <Auth />;
   }
-  
-  const PaymentStatusBanner = () => {
-    if (!paymentStatus) return null;
-
-    const isSuccess = paymentStatus === 'success';
-    const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50';
-    const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
-    const icon = isSuccess ? 'check_circle' : 'error';
-    const title = isSuccess ? 'Pagamento Aprovado!' : 'Pagamento Falhou';
-    const message = isSuccess 
-      ? 'Seu plano será atualizado em breve. Pode levar alguns instantes para a confirmação.' 
-      : 'Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente.';
-
-    return (
-      <div className={`fixed top-24 right-8 p-4 rounded-lg shadow-lg z-50 ${bgColor} ${textColor} animate-fade-in-out`}>
-        <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined">{icon}</span>
-            <div>
-                <p className="font-bold">{title}</p>
-                <p className="text-sm">{message}</p>
-            </div>
-            <button onClick={() => setPaymentStatus(null)} className="ml-4">&times;</button>
-        </div>
-         <style>{`
-            @keyframes fade-in-out {
-              0% { opacity: 0; transform: translateY(-20px); }
-              10% { opacity: 1; transform: translateY(0); }
-              90% { opacity: 1; transform: translateY(0); }
-              100% { opacity: 0; transform: translateY(-20px); }
-            }
-            .animate-fade-in-out {
-              animation: fade-in-out 5s ease-in-out forwards;
-            }
-        `}</style>
-      </div>
-    );
-  };
-
 
   // Main application view
   return (
     <div className="min-h-screen bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-      <PaymentStatusBanner />
+      <PaymentStatusBanner status={paymentStatus} onDismiss={() => setPaymentStatus(null)} />
       <Header
         activeView={activeView}
         setActiveView={setActiveView}

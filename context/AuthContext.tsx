@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc, Timestamp } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '../services/firebase.ts';
-import { User, UserDocument, UserPlan } from '../types.ts';
+import { User, UserDocument } from '../types/index.ts';
 
 interface AuthContextType {
   user: User | null;
@@ -38,37 +38,66 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     }
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        // Fetch user document from Firestore to get their plan and usage data
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        
-        const defaultUser: User = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            plan: 'free',
-            postCount: 0,
-            lastPostResetDate: new Date(),
-            subscriptionEndDate: null,
-        };
+      try {
+        if (firebaseUser) {
+          // Fetch user document from Firestore to get their plan and usage data
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          const defaultUser: User = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              plan: 'free',
+              postCount: 0,
+              lastPostResetDate: new Date(),
+              subscriptionEndDate: null,
+          };
 
-        if (userDocSnap.exists()) {
-            const data = userDocSnap.data() as UserDocument;
+          if (userDocSnap.exists()) {
+              const data = userDocSnap.data() as UserDocument;
+              setUser({
+                  ...defaultUser,
+                  plan: data.plan || 'free',
+                  postCount: data.postCount || 0,
+                  lastPostResetDate: (data.lastPostResetDate as Timestamp)?.toDate() || new Date(),
+                  subscriptionEndDate: (data.subscriptionEndDate as Timestamp)?.toDate() || null,
+              });
+          } else {
+              // This case might happen for users created before the system had firestore docs
+              // Let's create one for them now to avoid issues
+              const userDoc: UserDocument = {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email!,
+                  createdAt: serverTimestamp(),
+                  plan: 'free',
+                  postCount: 0,
+                  lastPostResetDate: serverTimestamp(),
+              };
+              await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+              setUser(defaultUser);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Falha ao carregar dados do usuário do Firestore. O app pode não funcionar offline.", error);
+        // If firestore fails, we can still set the basic user object from auth
+        // to allow the app to function in a degraded mode.
+        if (firebaseUser) {
             setUser({
-                ...defaultUser,
-                plan: data.plan || 'free',
-                postCount: data.postCount || 0,
-                lastPostResetDate: (data.lastPostResetDate as Timestamp)?.toDate() || new Date(),
-                subscriptionEndDate: (data.subscriptionEndDate as Timestamp)?.toDate() || null,
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                plan: 'free', // Default to free plan
+                postCount: 0,
+                lastPostResetDate: new Date(),
+                subscriptionEndDate: null,
             });
         } else {
-            // This case might happen for users created before the system had firestore docs
-            setUser(defaultUser);
+            setUser(null);
         }
-      } else {
-        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -133,7 +162,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
         if(user.subscriptionEndDate && user.subscriptionEndDate > new Date()) {
             return true;
         }
-        // Handle expired subscription case (though a backend job should ideally handle this)
+        // Handle expired subscription case (a backend job should ideally handle this)
         return false;
     }
     

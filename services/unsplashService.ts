@@ -1,4 +1,4 @@
-import { UnsplashImage } from '../types.ts';
+import { UnsplashImage } from '../types/index.ts';
 
 const API_BASE_URL = 'https://api.unsplash.com';
 

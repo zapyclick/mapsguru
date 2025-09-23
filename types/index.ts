@@ -1,3 +1,20 @@
+// Represents the structure of an image object from the Unsplash API
+export interface UnsplashImage {
+  id: string;
+  urls: {
+    regular: string;
+    thumb: string;
+  };
+  alt_description: string;
+  user: {
+    name: string;
+    links: {
+      html: string;
+    };
+  };
+  isMock?: boolean;
+}
+
 // Represents a single Google Business Profile post being created
 export interface Post {
   id: string;
@@ -23,23 +40,6 @@ export interface ImageText {
   strokeWidth: number;
   strokeColor: string;
   cornerRadius: number;
-}
-
-// Represents the structure of an image object from the Unsplash API
-export interface UnsplashImage {
-  id: string;
-  urls: {
-    regular: string;
-    thumb: string;
-  };
-  alt_description: string;
-  user: {
-    name: string;
-    links: {
-      html: string;
-    };
-  };
-  isMock?: boolean;
 }
 
 // Represents the business profile information

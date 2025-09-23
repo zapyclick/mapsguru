@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
 
-const Login: React.FC = () => {
+const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
     setError(null);
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // O sucesso redireciona automaticamente via `App.tsx`
+      await register(email, password);
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro ao fazer login. Tente novamente.');
+      setError(err.message || 'Ocorreu um erro ao criar a conta.');
     } finally {
       setIsLoading(false);
     }
@@ -27,10 +31,10 @@ const Login: React.FC = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <label htmlFor="login-email" className="font-semibold block mb-2">Email</label>
+        <label htmlFor="register-email" className="font-semibold block mb-2">Email</label>
         <NeumorphicCardInset className="p-1 rounded-lg">
           <input
-            id="login-email"
+            id="register-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -41,17 +45,34 @@ const Login: React.FC = () => {
           />
         </NeumorphicCardInset>
       </div>
+
       <div className="space-y-2">
-        <label htmlFor="login-password" className="font-semibold block mb-2">Senha</label>
+        <label htmlFor="register-password" className="font-semibold block mb-2">Senha</label>
         <NeumorphicCardInset className="p-1 rounded-lg">
           <input
-            id="login-password"
+            id="register-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="current-password"
-            placeholder="********"
+            autoComplete="new-password"
+            placeholder="Mínimo de 6 caracteres"
+            className="w-full bg-transparent p-3 outline-none"
+          />
+        </NeumorphicCardInset>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="confirm-password" className="font-semibold block mb-2">Confirmar Senha</label>
+        <NeumorphicCardInset className="p-1 rounded-lg">
+          <input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            placeholder="Repita a senha"
             className="w-full bg-transparent p-3 outline-none"
           />
         </NeumorphicCardInset>
@@ -65,11 +86,11 @@ const Login: React.FC = () => {
           disabled={isLoading}
           className="w-full py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Entrando...' : 'Entrar'}
+          {isLoading ? 'Criando conta...' : 'Cadastrar'}
         </button>
       </div>
     </form>
   );
 };
 
-export default Login;
+export default Register;
