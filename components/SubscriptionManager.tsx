@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { createSubscriptionPreference } from '../services/mercadoPagoService.ts';
 
-// ===================================================================================
-// ATENÇÃO: É AQUI QUE VOCÊ COLOCA SEUS LINKS DE PAGAMENTO!
-// 1. Crie os links de pagamento na sua plataforma (Mercado Pago, Stripe, etc.).
-// 2. Cole cada link no lugar correspondente abaixo.
-// ===================================================================================
-const PAYMENT_LINKS = {
-  pro: {
-    monthly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI', // Ex: https://mpago.la/123xyz
-    yearly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
-  },
-  premium: {
-    monthly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
-    yearly: 'https://SEU_LINK_DE_PAGAMENTO_AQUI',
-  },
+// Define os planos disponíveis no aplicativo
+const PLANS = {
+  pro_monthly: { id: 'pro_monthly', name: 'Plano Pro Mensal', price: 47, cycle: 'monthly', level: 'pro' },
+  pro_yearly: { id: 'pro_yearly', name: 'Plano Pro Anual', price: 447, cycle: 'yearly', level: 'pro' },
+  premium_monthly: { id: 'premium_monthly', name: 'Plano Premium Mensal', price: 97, cycle: 'monthly', level: 'premium' },
+  premium_yearly: { id: 'premium_yearly', name: 'Plano Premium Anual', price: 897, cycle: 'yearly', level: 'premium' },
 };
 
 interface BillingCycles {
@@ -23,29 +17,66 @@ interface BillingCycles {
 }
 
 const SubscriptionManager: React.FC = () => {
+  const { user } = useAuth();
   const [billingCycles, setBillingCycles] = useState<BillingCycles>({ pro: 'monthly', premium: 'monthly' });
+  const [isLoading, setIsLoading] = useState<string | null>(null); // Stores the ID of the plan being loaded
+  const [error, setError] = useState<string | null>(null);
 
-  const handleUpgradeClick = (paymentUrl: string) => {
-    if (!paymentUrl || paymentUrl.includes('SEU_LINK_DE_PAGAMENTO_AQUI')) {
-      alert('O link de pagamento para este plano ainda não foi configurado.');
+  const handleUpgradeClick = async (planId: keyof typeof PLANS) => {
+    if (!user || !user.email) {
+      setError("Não foi possível identificar o usuário. Por favor, tente fazer login novamente.");
       return;
     }
-    window.open(paymentUrl, '_blank');
+
+    setIsLoading(planId);
+    setError(null);
+
+    try {
+      const plan = PLANS[planId];
+      const preference = await createSubscriptionPreference(plan.id, plan.name, plan.price, user.email);
+      if (preference && preference.init_point) {
+        // Redireciona o usuário para o checkout do Mercado Pago
+        window.location.href = preference.init_point;
+      } else {
+        throw new Error("Não foi possível criar o link de pagamento.");
+      }
+    } catch (err: any) {
+      console.error("Erro ao criar preferência do Mercado Pago:", err);
+      setError(err.message || 'Ocorreu um erro. Tente novamente mais tarde.');
+      setIsLoading(null);
+    }
   };
+  
+  const PlanTag: React.FC<{ planName: string }> = ({ planName }) => (
+    <div className="absolute top-0 right-4 -translate-y-1/2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+      SEU PLANO
+    </div>
+  );
 
   return (
     <>
       <NeumorphicCard className="p-6 space-y-8">
         <div>
           <h2 className="text-2xl font-bold">Planos e Assinaturas</h2>
-          <p className="text-slate-600 dark:text-slate-400">Escolha o plano que melhor se adapta às suas necessidades.</p>
+          <p className="text-slate-600 dark:text-slate-400">
+            Você está no plano <span className="font-bold capitalize">{user?.plan || 'Free'}</span>.
+            Escolha um plano abaixo para desbloquear mais recursos.
+          </p>
         </div>
+
+        {error && (
+            <div className="p-4 text-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
+                <p className="font-semibold">Erro</p>
+                <p className="text-sm">{error}</p>
+            </div>
+        )}
         
-        {/* Upgrade Section */}
         <div className="space-y-4 pt-6 border-t border-slate-300 dark:border-slate-700">
             <div className="grid md:grid-cols-3 gap-6">
+                
                 {/* Pro Plan Card */}
-                <NeumorphicCard className="p-6 space-y-4 !rounded-xl border-2 border-transparent hover:border-blue-500 transition-colors flex flex-col">
+                <NeumorphicCard className="p-6 space-y-4 !rounded-xl border-2 border-transparent hover:border-blue-500 transition-colors flex flex-col relative">
+                    {user?.plan === 'pro' && <PlanTag planName="Pro" />}
                     <h4 className="text-xl font-bold text-blue-600 dark:text-blue-400">Plano Pro</h4>
                     <div className="flex justify-center">
                         <NeumorphicCardInset className="p-1 rounded-full flex text-sm">
@@ -54,7 +85,7 @@ const SubscriptionManager: React.FC = () => {
                         </NeumorphicCardInset>
                     </div>
                     <div className="text-center">
-                        <p className="text-3xl font-bold">R${billingCycles.pro === 'monthly' ? '47' : '447'}</p>
+                        <p className="text-3xl font-bold">R${billingCycles.pro === 'monthly' ? PLANS.pro_monthly.price : PLANS.pro_yearly.price}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">/{billingCycles.pro === 'monthly' ? 'mês' : 'ano'}</p>
                         {billingCycles.pro === 'yearly' && <p className="text-xs text-green-600 dark:text-green-400 font-semibold">20% de desconto</p>}
                     </div>
@@ -63,12 +94,19 @@ const SubscriptionManager: React.FC = () => {
                             <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">check_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.pro[billingCycles.pro])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Assinar Agora</button>
+                    <button 
+                      onClick={() => handleUpgradeClick(billingCycles.pro === 'monthly' ? 'pro_monthly' : 'pro_yearly')} 
+                      disabled={isLoading !== null || user?.plan === 'pro' || user?.plan === 'premium'}
+                      className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading === `pro_${billingCycles.pro}` ? 'Aguarde...' : (user?.plan === 'pro' ? 'Seu Plano Atual' : 'Assinar Agora')}
+                    </button>
                 </NeumorphicCard>
 
                 {/* Premium Plan Card */}
                 <NeumorphicCard className="p-6 space-y-4 !rounded-xl border-2 border-blue-500 transition-colors relative flex flex-col">
-                    <div className="absolute top-0 right-4 -translate-y-1/2 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">MAIS POPULAR</div>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">MAIS POPULAR</div>
+                    {user?.plan === 'premium' && <PlanTag planName="Premium" />}
                     <h4 className="text-xl font-bold text-blue-600 dark:text-blue-400">Plano Premium</h4>
                      <div className="flex justify-center">
                         <NeumorphicCardInset className="p-1 rounded-full flex text-sm">
@@ -77,7 +115,7 @@ const SubscriptionManager: React.FC = () => {
                         </NeumorphicCardInset>
                     </div>
                     <div className="text-center">
-                        <p className="text-3xl font-bold">R${billingCycles.premium === 'monthly' ? '97' : '897'}</p>
+                        <p className="text-3xl font-bold">R${billingCycles.premium === 'monthly' ? PLANS.premium_monthly.price : PLANS.premium_yearly.price}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">/{billingCycles.premium === 'monthly' ? 'mês' : 'ano'}</p>
                         {billingCycles.premium === 'yearly' && <p className="text-xs text-green-600 dark:text-green-400 font-semibold">23% de desconto</p>}
                     </div>
@@ -87,7 +125,13 @@ const SubscriptionManager: React.FC = () => {
                              <li key={item} className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500">add_circle</span><span>{item}</span></li>
                         ))}
                     </ul>
-                    <button onClick={() => handleUpgradeClick(PAYMENT_LINKS.premium[billingCycles.premium])} className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">Assinar Agora</button>
+                    <button 
+                      onClick={() => handleUpgradeClick(billingCycles.premium === 'monthly' ? 'premium_monthly' : 'premium_yearly')} 
+                      disabled={isLoading !== null || user?.plan === 'premium'}
+                      className="w-full mt-4 py-3 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading === `premium_${billingCycles.premium}` ? 'Aguarde...' : (user?.plan === 'premium' ? 'Seu Plano Atual' : 'Assinar Agora')}
+                    </button>
                 </NeumorphicCard>
 
                 {/* Enterprise Plan Card */}

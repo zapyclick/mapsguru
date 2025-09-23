@@ -51,14 +51,17 @@ export interface BusinessProfile {
 }
 
 // User types for Firebase authentication
+export type UserPlan = 'free' | 'pro' | 'premium';
+
 export interface User {
   uid: string;
   email: string | null;
+  plan: UserPlan;
 }
 
 export interface UserDocument {
   uid: string;
   email: string;
-  createdAt: Date;
-  plan?: 'free' | 'pro' | 'premium';
+  createdAt: any; // Firestore Timestamp
+  plan?: UserPlan;
 }

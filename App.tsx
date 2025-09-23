@@ -43,6 +43,7 @@ const initialProfileState: BusinessProfile = {
 
 function App() {
   const { isAuthenticated, user } = useAuth();
+  const [paymentStatus, setPaymentStatus] = useState<'success' | 'failure' | null>(null);
 
   // Create user-specific keys for localStorage to ensure data isolation
   const userPrefix = isAuthenticated && user ? user.uid : 'guest';
@@ -65,6 +66,28 @@ function App() {
       }
     }
   }, [isAuthenticated, businessProfileKey]);
+
+  // Check for payment status from Mercado Pago redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const collectionStatus = urlParams.get('collection_status'); // Alternative param
+
+    if (status === 'approved' || collectionStatus === 'approved') {
+      setPaymentStatus('success');
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (status === 'failure' || collectionStatus === 'failure' || status === 'rejected' || collectionStatus === 'rejected') {
+      setPaymentStatus('failure');
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (status || collectionStatus) {
+      setTimeout(() => setPaymentStatus(null), 5000); // Hide message after 5 seconds
+    }
+  }, []);
+
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -103,10 +126,49 @@ function App() {
   if (!isAuthenticated) {
     return <Auth />;
   }
+  
+  const PaymentStatusBanner = () => {
+    if (!paymentStatus) return null;
+
+    const isSuccess = paymentStatus === 'success';
+    const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50';
+    const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
+    const icon = isSuccess ? 'check_circle' : 'error';
+    const title = isSuccess ? 'Pagamento Aprovado!' : 'Pagamento Falhou';
+    const message = isSuccess 
+      ? 'Seu plano será atualizado em breve. Pode levar alguns instantes para a confirmação.' 
+      : 'Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente.';
+
+    return (
+      <div className={`fixed top-24 right-8 p-4 rounded-lg shadow-lg z-50 ${bgColor} ${textColor} animate-fade-in-out`}>
+        <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined">{icon}</span>
+            <div>
+                <p className="font-bold">{title}</p>
+                <p className="text-sm">{message}</p>
+            </div>
+            <button onClick={() => setPaymentStatus(null)} className="ml-4">&times;</button>
+        </div>
+         <style>{`
+            @keyframes fade-in-out {
+              0% { opacity: 0; transform: translateY(-20px); }
+              10% { opacity: 1; transform: translateY(0); }
+              90% { opacity: 1; transform: translateY(0); }
+              100% { opacity: 0; transform: translateY(-20px); }
+            }
+            .animate-fade-in-out {
+              animation: fade-in-out 5s ease-in-out forwards;
+            }
+        `}</style>
+      </div>
+    );
+  };
+
 
   // Main application view
   return (
     <div className="min-h-screen bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+      <PaymentStatusBanner />
       <Header
         activeView={activeView}
         setActiveView={setActiveView}
