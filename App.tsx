@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 // Hooks and services
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import { useAuth } from './context/AuthContext.tsx';
+import { AuthProvider } from './context/AuthContext.tsx';
+import { ThemeProvider } from './context/ThemeContext.tsx';
 
 // Components
 import Header from './components/Header.tsx';
@@ -42,6 +44,16 @@ const initialProfileState: BusinessProfile = {
 };
 
 function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
   const { isAuthenticated, user } = useAuth();
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'failure' | null>(null);
 

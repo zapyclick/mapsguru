@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Post, BusinessProfile, ImageText } from '../types.ts';
 import { generatePostText } from '../services/geminiService.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import ImageSearch from './ImageSearch.tsx';
 import ImageEditor from './ImageEditor.tsx';
 import { NeumorphicCard, NeumorphicCardInset } from './NeumorphicCard.tsx';
@@ -18,6 +19,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const { canUserGeneratePost, incrementUserPostCount } = useAuth();
   
   const handleInputChange = (field: keyof Post, value: string | null | ImageText | boolean) => {
     onPostChange({ ...post, [field]: value });
@@ -32,9 +34,24 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
       alert('Por favor, preencha o nome da empresa no Perfil do Negócio.');
       return;
     }
+
+    const canGenerate = await canUserGeneratePost();
+    if (!canGenerate) {
+        alert('Você atingiu seu limite de posts para esta semana. Para continuar postando, por favor, faça o upgrade para o plano Pro.');
+        return;
+    }
+
     setIsGeneratingText(true);
     const generatedText = await generatePostText(post.keywords, businessProfile);
-    handleInputChange('text', generatedText);
+    
+    // Only increment count if text generation was successful
+    if (generatedText && !generatedText.startsWith("Ocorreu um erro")) {
+        handleInputChange('text', generatedText);
+        await incrementUserPostCount();
+    } else {
+        handleInputChange('text', generatedText); // Show the error message in the textarea
+    }
+
     setIsGeneratingText(false);
   };
   

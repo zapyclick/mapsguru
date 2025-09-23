@@ -51,17 +51,25 @@ export interface BusinessProfile {
 }
 
 // User types for Firebase authentication
-export type UserPlan = 'free' | 'pro' | 'premium';
+export type UserPlan = 'free' | 'pro' | 'cortesia' | 'premium'; // premium is kept for legacy/future use
 
 export interface User {
   uid: string;
   email: string | null;
   plan: UserPlan;
+  // Fields for usage control
+  postCount: number;
+  lastPostResetDate: Date | null;
+  subscriptionEndDate: Date | null;
 }
 
 export interface UserDocument {
   uid: string;
   email: string;
   createdAt: any; // Firestore Timestamp
-  plan?: UserPlan;
+  plan: UserPlan;
+  // Optional fields for subscription management
+  subscriptionEndDate?: any; // Firestore Timestamp
+  postCount?: number;
+  lastPostResetDate?: any; // Firestore Timestamp
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc, Timestamp } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '../services/firebase.ts';
 import { User, UserDocument, UserPlan } from '../types.ts';
 
@@ -11,9 +11,18 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  canUserGeneratePost: () => Promise<boolean>;
+  incrementUserPostCount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper to check if a week has passed
+const hasWeekPassed = (startDate: Date): boolean => {
+    const oneWeekInMs = 7 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+    return now.getTime() - startDate.getTime() >= oneWeekInMs;
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -28,21 +37,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Fetch user document from Firestore to get their plan
+        // Fetch user document from Firestore to get their plan and usage data
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const userDocSnap = await getDoc(userDocRef);
         
-        let userPlan: UserPlan = 'free'; // Default to 'free'
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data() as UserDocument;
-            userPlan = userData.plan || 'free';
-        }
+        const defaultUser: User = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            plan: 'free',
+            postCount: 0,
+            lastPostResetDate: new Date(),
+            subscriptionEndDate: null,
+        };
 
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          plan: userPlan,
-        });
+        if (userDocSnap.exists()) {
+            const data = userDocSnap.data() as UserDocument;
+            setUser({
+                ...defaultUser,
+                plan: data.plan || 'free',
+                postCount: data.postCount || 0,
+                lastPostResetDate: (data.lastPostResetDate as Timestamp)?.toDate() || new Date(),
+                subscriptionEndDate: (data.subscriptionEndDate as Timestamp)?.toDate() || null,
+            });
+        } else {
+            // This case might happen for users created before the system had firestore docs
+            setUser(defaultUser);
+        }
       } else {
         setUser(null);
       }
@@ -60,12 +80,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const newUser = userCredential.user;
         
-        await setDoc(doc(db, 'users', newUser.uid), {
+        // Initialize user document with free plan defaults
+        const userDoc: UserDocument = {
             uid: newUser.uid,
-            email: newUser.email,
+            email: newUser.email!,
             createdAt: serverTimestamp(),
             plan: 'free',
-        } as UserDocument);
+            postCount: 0,
+            lastPostResetDate: serverTimestamp(),
+        };
+        await setDoc(doc(db, 'users', newUser.uid), userDoc);
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -98,6 +122,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setUser(null);
   };
+  
+  const canUserGeneratePost = async (): Promise<boolean> => {
+    if (!user) return false;
+
+    // Pro and Courtesy users have unlimited access as long as their subscription is valid
+    if (user.plan === 'pro' || user.plan === 'cortesia') {
+        if(user.subscriptionEndDate && user.subscriptionEndDate > new Date()) {
+            return true;
+        }
+        // Handle expired subscription case (though a backend job should ideally handle this)
+        return false;
+    }
+    
+    // Free user logic
+    if (user.plan === 'free') {
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      // Check if a week has passed to reset the counter
+      if (user.lastPostResetDate && hasWeekPassed(user.lastPostResetDate)) {
+        await updateDoc(userDocRef, { postCount: 0, lastPostResetDate: serverTimestamp() });
+        setUser(prevUser => prevUser ? { ...prevUser, postCount: 0, lastPostResetDate: new Date() } : null);
+        return true;
+      }
+      // If week has not passed, check if they are under the limit
+      return user.postCount < 1;
+    }
+
+    return false;
+  };
+
+  const incrementUserPostCount = async (): Promise<void> => {
+      if (!user || user.plan !== 'free') return;
+
+      const newCount = user.postCount + 1;
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { postCount: newCount });
+      setUser(prevUser => prevUser ? { ...prevUser, postCount: newCount } : null);
+  };
+
 
   const isAuthenticated = !!user;
   
@@ -108,6 +171,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     register,
     logout,
+    canUserGeneratePost,
+    incrementUserPostCount,
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;

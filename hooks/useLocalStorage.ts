@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 
 // A custom hook to manage state with localStorage persistence.
 // It synchronizes state between the component and localStorage.
-export function useLocalStorage<T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+// FIX: Imported Dispatch and SetStateAction types from 'react' and updated the function's return type signature to resolve "Cannot find namespace 'React'" errors.
+export function useLocalStorage<T,>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   // Get initial value from localStorage or use the provided initial value
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {

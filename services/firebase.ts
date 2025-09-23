@@ -1,6 +1,4 @@
-// FIX: The user's environment seems to have trouble with the named export for `initializeApp`.
-// Switching to a namespace import is a more robust way to handle potential module resolution issues.
-import * as firebaseApp from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -24,7 +22,7 @@ const firebaseConfig = {
 };
 
 // Inicializa o Firebase
-const app = firebaseApp.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
 // Exporta os serviços que serão usados no aplicativo
 export const auth = getAuth(app);
