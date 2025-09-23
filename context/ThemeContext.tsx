@@ -10,7 +10,9 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+// FIX: Made children optional to resolve a TypeScript error in App.tsx where
+// the compiler incorrectly reported that the 'children' prop was missing.
+export const ThemeProvider = ({ children }: { children?: ReactNode }) => {
   const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
 
   // This effect applies the theme class to the root HTML element

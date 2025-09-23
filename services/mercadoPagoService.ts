@@ -4,7 +4,7 @@
 // 2. Copie sua "Access Token" de Produção.
 // 3. Cole o token na constante MERCADO_PAGO_ACCESS_TOKEN abaixo.
 // ===================================================================================
-const MERCADO_PAGO_ACCESS_TOKEN: string = 'COLE_SEU_ACCESS_TOKEN_AQUI';
+const MERCADO_PAGO_ACCESS_TOKEN: string = 'TEST-763978306951987-091709-9751601d5222b41ff5fd2c3fcc5c79f9-572109952';
 
 // ===================================================================================
 // AVISO DE SEGURANÇA PARA PRODUÇÃO

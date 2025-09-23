@@ -24,7 +24,9 @@ const hasWeekPassed = (startDate: Date): boolean => {
     return now.getTime() - startDate.getTime() >= oneWeekInMs;
 };
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+// FIX: Made children optional to resolve a TypeScript error in App.tsx where
+// the compiler incorrectly reported that the 'children' prop was missing.
+export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
