@@ -1,16 +1,23 @@
 import { GoogleGenAI } from "@google/genai";
 import { BusinessProfile } from '../types/index.ts';
 
-// The API key must be obtained exclusively from the environment variable `process.env.API_KEY`.
-// This is a hard requirement.
-const apiKey = process.env.API_KEY;
+// --- INSTRUÇÕES ---
+// 1. Obtenha sua chave de API em https://aistudio.google.com/app/apikey
+// 2. Cole sua chave abaixo, substituindo o texto "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI".
+// ATENÇÃO: Esta chave ficará visível no código do frontend.
+// Para produção, o ideal é movê-la para um backend para maior segurança.
+const GEMINI_API_KEY = "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI";
 
-if (!apiKey) {
-    console.error("A variável de ambiente API_KEY do Google GenAI não está definida.");
+const apiKey = GEMINI_API_KEY;
+
+// Adiciona uma verificação para garantir que a chave foi alterada
+if (!apiKey || apiKey === "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI") {
+    console.error("A chave da API do Google GenAI não está configurada. Edite o arquivo 'services/geminiService.ts'.");
 }
 
 // Initialize with a check for the API key to avoid creating an instance that will fail.
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const ai = (apiKey && apiKey !== "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI") ? new GoogleGenAI({ apiKey }) : null;
+
 
 /**
  * Cleans a Google Business Profile URL.
@@ -49,7 +56,7 @@ const getCleanGbpLink = (url: string): string => {
  */
 export const generatePostText = async (keywords: string, profile: BusinessProfile): Promise<string> => {
     if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada. Verifique suas variáveis de ambiente.");
+        throw new Error("A chave da API do Google GenAI não está configurada. Verifique o arquivo 'services/geminiService.ts'.");
     }
 
     // Create the full WhatsApp link if a number is provided

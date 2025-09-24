@@ -15,9 +15,9 @@ const InstructionsPDF: React.FC = () => {
     </section>
   );
 
-  const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  const CodeBlock: React.FC<{ children: React.ReactNode; lang?: string }> = ({ children, lang }) => (
     <pre className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg text-sm print:bg-gray-100 print:text-black print:border print:border-gray-300 overflow-x-auto">
-      <code>{children}</code>
+      <code className={lang ? `language-${lang}` : ''}>{children}</code>
     </pre>
   );
 
@@ -27,7 +27,7 @@ const InstructionsPDF: React.FC = () => {
         <NeumorphicCard className="p-6 sm:p-8 print:shadow-none print:p-0 print:bg-white dark:print:bg-white">
           
           <div className="flex justify-between items-center mb-8 print:hidden">
-            <h1 className="text-2xl font-bold m-0">Instruções para Integração</h1>
+            <h1 className="text-2xl font-bold m-0">Instruções de Configuração</h1>
             <button
               onClick={handlePrint}
               className="py-2 px-5 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors"
@@ -37,77 +37,69 @@ const InstructionsPDF: React.FC = () => {
           </div>
           
           <div id="printable-content" className="text-base">
-            <h2 className="text-2xl font-bold print:text-3xl">Plano de Implementação: Integração de Pagamentos Mercado Pago no Firebase</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 print:text-gray-600"><strong>Objetivo:</strong> Adicionar um sistema de planos e pagamentos com liberação manual, garantindo a segurança e a estabilidade do aplicativo existente.</p>
+            <h2 className="text-2xl font-bold print:text-3xl">Guia de Configuração (Versão Frontend-Only)</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 print:text-gray-600"><strong>Objetivo:</strong> Configurar as chaves de API necessárias para que as funcionalidades de IA e busca de imagens funcionem corretamente.</p>
 
-            <Section title="Passo 1: Garantir a Segurança (Ação Mais Importante!)">
-              <p><strong>Problema:</strong> A sua chave secreta (<code className="bg-slate-300 dark:bg-slate-700 p-1 rounded text-xs">MERCADO_PAGO_ACCESS_TOKEN</code>) está no frontend (<code className="bg-slate-300 dark:bg-slate-700 p-1 rounded text-xs">mercadoPagoService.ts</code>), o que é um risco de segurança grave.</p>
-              <p><strong>Solução (Não negociável):</strong> Mover a lógica de criação de pagamento para uma <strong>Firebase Cloud Function</strong>.</p>
-              <p><strong>Novo Fluxo Seguro:</strong></p>
+            <Section title="Parte 1: Configurando as Chaves de API">
+              <p>Para que o aplicativo funcione, você precisa fornecer duas chaves de API: uma para a IA do Google (Gemini) e outra para o banco de imagens (Unsplash).</p>
+              
+              <h4 className="font-bold mt-4">1. Chave da API Gemini (Google AI)</h4>
               <ol className="list-decimal list-inside space-y-2 pl-2">
-                  <li><strong>Frontend:</strong> Quando o usuário clica em "Fazer Upgrade", o app chama uma Cloud Function (ex: <code>createMercadoPagoPreference</code>), enviando o ID do plano e o ID do usuário.</li>
-                  <li><strong>Backend (Cloud Function):</strong> A função, que tem a chave do Mercado Pago guardada de forma segura, recebe o pedido, chama a API do Mercado Pago para criar o link de pagamento.</li>
-                  <li><strong>Backend (Cloud Function):</strong> A função também cria um registro na collection <code>payment_intentions</code> no Firestore com o status <code>pending</code>.</li>
-                  <li><strong>Backend (Cloud Function):</strong> A função retorna <strong>apenas</strong> o link de pagamento (<code>init_point</code>) para o frontend.</li>
-                  <li><strong>Frontend:</strong> O app redireciona o usuário para o link recebido.</li>
+                <li><strong>Obtenha a Chave:</strong> Acesse o Google AI Studio em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">aistudio.google.com/app/apikey</a>.</li>
+                <li><strong>Crie uma Nova Chave:</strong> Clique em "Create API key in new project" e copie a chave gerada.</li>
+                <li>
+                  <strong>Adicione ao Código:</strong> Abra o arquivo `services/geminiService.ts` no seu editor de código e cole a chave que você copiou, substituindo o texto de exemplo.
+                  <CodeBlock lang="typescript">{`// services/geminiService.ts
+
+// ...
+const GEMINI_API_KEY = "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI";
+// ...`}</CodeBlock>
+                </li>
+              </ol>
+
+              <h4 className="font-bold mt-4">2. Chave de Acesso do Unsplash (Opcional)</h4>
+               <p>Esta chave é necessária para a funcionalidade de busca de imagens online.</p>
+              <ol className="list-decimal list-inside space-y-2 pl-2">
+                <li><strong>Crie uma Conta:</strong> Acesse <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">unsplash.com/developers</a> e crie uma conta de desenvolvedor.</li>
+                <li><strong>Crie um Novo Aplicativo:</strong> Siga as instruções para criar um novo aplicativo. Você receberá uma "Access Key".</li>
+                <li>
+                  <strong>Adicione ao Código:</strong> Abra o arquivo `services/unsplashService.ts` e cole sua "Access Key".
+                  <CodeBlock lang="typescript">{`// services/unsplashService.ts
+
+// ...
+const UNSPLASH_ACCESS_KEY: string = 'COLE_AQUI_SUA_ACCESS_KEY_DO_UNSPLASH';
+// ...`}</CodeBlock>
+                </li>
               </ol>
             </Section>
 
-            <Section title="Passo 2: Criar o Controle de Acesso por Plano">
-              <p>O controle deve existir em dois níveis: na interface (para a experiência do usuário) e no banco de dados (para segurança).</p>
-              <h4 className="font-semibold pt-2">1. Controle na Interface (UI):</h4>
-              <ul className="list-disc list-inside space-y-2 pl-2">
-                  <li>Utilize o hook <code>useAuth</code> para obter os dados do usuário, que já incluem o <code>plan</code> e <code>subscriptionEndDate</code>.</li>
-                  <li>"Bloqueie" as funcionalidades Pro na interface. Exemplo:</li>
-              </ul>
-              <CodeBlock>
-{`// Dentro de um componente Premium
-const { user } = useAuth();
-
-if (user?.plan !== 'pro') {
-  return <ComponenteDeUpgrade />;
-}`}
-              </CodeBlock>
-              <h4 className="font-semibold pt-2">2. Controle no Backend (Firestore Security Rules):</h4>
-              <ul className="list-disc list-inside space-y-2 pl-2">
-                  <li><strong>Regra Essencial:</strong> Impedir que o usuário possa alterar o próprio plano diretamente no banco de dados.</li>
-                  <li><strong>Exemplo de <code>firestore.rules</code>:</strong></li>
-              </ul>
-              <CodeBlock>
-{`match /users/{userId} {
-  // Permite que o usuário leia/escreva...
-  allow read, write: if request.auth.uid == userId
-    // ...EXCETO nos campos 'plan' e 'subscriptionEndDate'.
-    && !('plan' in request.resource.data)
-    && !('subscriptionEndDate' in request.resource.data);
-}`}
-              </CodeBlock>
-            </Section>
-
-            <Section title="Passo 3: Estruturar a Liberação Manual">
-              <p>Este processo é ótimo para começar e validar a funcionalidade.</p>
-              <ol className="list-decimal list-inside space-y-2 pl-2">
-                  <li><strong>Recebimento do Pagamento:</strong> Você receberá uma notificação por e-mail do Mercado Pago quando um pagamento for aprovado.</li>
-                  <li><strong>Identificação do Usuário:</strong> Use o e-mail do comprador para encontrá-lo na seção <strong>Authentication</strong> do seu Console do Firebase. Copie o <code>UID</code> dele.</li>
-                  <li><strong>Liberação do Acesso:</strong> Vá para o <strong>Firestore Database</strong>, encontre o documento do usuário em <code>users/{'{UID}'}</code> e altere manualmente o campo <code>plan</code> para <code>"pro"</code> e defina o <code>subscriptionEndDate</code>.</li>
-                  <li><strong>Registro (Recomendado):</strong> Vá para a collection <code>payment_intentions</code> e mude o <code>status</code> de <code>pending</code> para <code>completed</code>.</li>
-              </ol>
-            </Section>
-
-            <Section title="Passo 4: Testar Antes de ir para Produção">
-               <ul className="list-disc list-inside space-y-2 pl-2">
-                  <li><strong>Sandbox do Mercado Pago:</strong> Use suas credenciais de teste (<code>TEST-...</code>) e cartões de crédito de teste para simular pagamentos.</li>
-                  <li><strong>Firebase Emulator Suite:</strong> Use o emulador do Firebase para rodar Auth, Firestore e Cloud Functions localmente na sua máquina.</li>
-                  <li><strong>Ambiente de Staging (Ideal):</strong> Crie um segundo projeto no Firebase para servir como ambiente de testes.</li>
-              </ul>
+            <Section title="Parte 2: Como Funciona o Armazenamento de Dados">
+                <p>Nesta versão do aplicativo, todos os seus dados são armazenados localmente no seu navegador, usando uma tecnologia chamada <strong>LocalStorage</strong>.</p>
+                 <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li>
+                        <strong>Privacidade Total:</strong> Seu "Perfil do Negócio" e outras informações nunca saem do seu computador.
+                    </li>
+                     <li>
+                        <strong>Persistência Automática:</strong> Tudo o que você digita é salvo automaticamente. Se você fechar e abrir o navegador, seus dados ainda estarão lá.
+                    </li>
+                     <li>
+                        <strong>Aviso Importante:</strong> Como os dados são salvos por navegador, eles <strong>não serão sincronizados</strong> entre diferentes computadores ou navegadores (por exemplo, entre o Chrome e o Firefox).
+                    </li>
+                    <li>
+                        <strong>Cuidado ao Limpar Dados:</strong> Se você limpar o cache ou os dados de navegação do seu navegador, <strong>todos os dados salvos neste aplicativo serão perdidos permanentemente</strong>.
+                    </li>
+                 </ul>
             </Section>
             
-            <Section title="Próximo Nível (Pós-lançamento): Automação com Webhooks">
-              <p>Quando estiver pronto para escalar, substitua o processo manual.</p>
-              <ol className="list-decimal list-inside space-y-2 pl-2">
-                  <li><strong>O que é um Webhook?</strong> É uma notificação automática que o Mercado Pago envia para uma URL sua (uma segunda Cloud Function) sempre que um evento acontece.</li>
-                  <li><strong>Fluxo Automatizado:</strong> Você cria uma Cloud Function (ex: <code>mercadoPagoWebhookHandler</code>) e configura a URL dela no seu painel do Mercado Pago. Quando um pagamento é aprovado, essa função recebe a notificação e atualiza o plano do usuário no Firestore automaticamente.</li>
-              </ol>
+            <Section title="Parte 3: Funcionalidades">
+                <p>Com a remoção dos sistemas de login e pagamento, todas as ferramentas de IA estão disponíveis de forma ilimitada.</p>
+                 <ul className="list-disc list-inside space-y-2 pl-2">
+                     <li><strong>Gerador de Posts:</strong> Crie textos e imagens para seus posts no Google Business Profile.</li>
+                     <li><strong>Assistente de Avaliações:</strong> Gere respostas profissionais para avaliações de clientes.</li>
+                     <li><strong>Gerador de Q&A:</strong> Crie conteúdo para a seção de Perguntas e Respostas do seu perfil.</li>
+                     <li><strong>Catálogo de Produtos:</strong> Elabore descrições persuasivas para seus produtos e serviços.</li>
+                 </ul>
+                 <p className="mt-4">Explore as ferramentas e comece a criar conteúdo de alta qualidade para o seu negócio local!</p>
             </Section>
           </div>
         </NeumorphicCard>

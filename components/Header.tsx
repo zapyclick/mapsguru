@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext.tsx';
-import { useAuth } from '../context/AuthContext.tsx';
 import { NeumorphicCard } from './ui/NeumorphicCard.tsx';
 import { IconButton } from './ui/IconButton.tsx';
 import { View } from '../App.tsx';
@@ -13,7 +12,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileClick }) => {
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
   const [isFeaturesMenuOpen, setIsFeaturesMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const featuresMenuRef = useRef<HTMLDivElement>(null);
@@ -24,7 +22,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     reviews: 'Assistente de Avaliações',
     qna: 'Gerador de Q&A',
     products: 'Catálogo de Produtos',
-    subscription: 'Meu Plano',
     pdf: 'Salvar Instruções (PDF)',
   };
 
@@ -51,11 +48,11 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
         {isFeaturesMenuOpen && (
           <NeumorphicCard className="absolute top-14 right-0 w-64 p-2 z-20">
             <ul className="space-y-1">
-              {Object.keys(viewLabels).map((key) => (
+              {(Object.keys(viewLabels) as View[]).map((key) => (
                 <li key={key}>
                   <button
                     onClick={() => {
-                      setActiveView(key as View);
+                      setActiveView(key);
                       setIsFeaturesMenuOpen(false);
                       setIsMobileMenuOpen(false);
                     }}
@@ -65,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
                         : 'hover:bg-slate-300/50 dark:hover:bg-slate-700/50'
                     }`}
                   >
-                    {viewLabels[key as View]}
+                    {viewLabels[key]}
                     {activeView === key && <span className="material-symbols-outlined text-base">check</span>}
                   </button>
                 </li>
@@ -83,10 +80,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
         <span className="material-symbols-outlined">
           {theme === 'light' ? 'dark_mode' : 'light_mode'}
         </span>
-      </IconButton>
-
-       <IconButton onClick={logout} aria-label="Sair">
-        <span className="material-symbols-outlined">logout</span>
       </IconButton>
     </>
   );

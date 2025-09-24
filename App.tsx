@@ -1,11 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 // Hooks and services
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 
 // Components
@@ -15,15 +12,13 @@ import BusinessProfileSetup from './features/profile/BusinessProfileSetup.tsx';
 import ReviewAssistant from './features/review-assistant/ReviewAssistant.tsx';
 import QnaAssistant from './features/qna-assistant/QnaAssistant.tsx';
 import ProductAssistant from './features/product-assistant/ProductAssistant.tsx';
-import SubscriptionManager from './features/subscription/SubscriptionManager.tsx';
-import Auth from './features/auth/Auth.tsx';
 import InstructionsPDF from './features/pdf-generator/InstructionsPDF.tsx';
 
 // Types
 import { Post, BusinessProfile } from './types/index.ts';
 
 // Define the different views/tools available in the app
-export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'subscription' | 'pdf';
+export type View = 'posts' | 'reviews' | 'qna' | 'products' | 'pdf';
 
 // Initial state for a new post
 const getInitialPostState = (): Post => ({
@@ -44,105 +39,19 @@ const initialProfileState: BusinessProfile = {
   logoUrl: null,
 };
 
-// Moved outside the component to prevent re-declaration on every render
-const PaymentStatusBanner: React.FC<{
-  status: 'success' | 'failure' | null;
-  onDismiss: () => void;
-}> = ({ status, onDismiss }) => {
-  if (!status) return null;
-
-  const isSuccess = status === 'success';
-  const bgColor = isSuccess ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50';
-  const textColor = isSuccess ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
-  const icon = isSuccess ? 'check_circle' : 'error';
-  const title = isSuccess ? 'Pagamento Aprovado!' : 'Pagamento Falhou';
-  const message = isSuccess 
-    ? 'Seu plano será atualizado em breve. Pode levar alguns instantes para a confirmação.' 
-    : 'Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente.';
-
-  return (
-    <div className={`fixed top-24 right-8 p-4 rounded-lg shadow-lg z-50 ${bgColor} ${textColor} animate-fade-in-out`}>
-      <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined">{icon}</span>
-          <div>
-              <p className="font-bold">{title}</p>
-              <p className="text-sm">{message}</p>
-          </div>
-          <button onClick={onDismiss} className="ml-4">&times;</button>
-      </div>
-       <style>{`
-          @keyframes fade-in-out {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-          }
-          .animate-fade-in-out {
-            animation: fade-in-out 5s ease-in-out forwards;
-          }
-      `}</style>
-    </div>
-  );
-};
-
-
 function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
-
-function AppContent() {
-  const { isAuthenticated, user } = useAuth();
-  const [paymentStatus, setPaymentStatus] = useState<'success' | 'failure' | null>(null);
-
-  // Create user-specific keys for localStorage to ensure data isolation
-  const userPrefix = isAuthenticated && user ? user.uid : 'guest';
-  const activeViewKey = `activeView_${userPrefix}`;
-  const businessProfileKey = `businessProfile_${userPrefix}`;
-
-  // App state
-  const [activeView, setActiveView] = useLocalStorage<View>(activeViewKey, 'posts');
+  const [activeView, setActiveView] = useLocalStorage<View>('activeView_local', 'posts');
   const [activePost, setActivePost] = useState<Post>(getInitialPostState);
-  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>(businessProfileKey, initialProfileState);
+  const [businessProfile, setBusinessProfile] = useLocalStorage<BusinessProfile>('businessProfile_local', initialProfileState);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    // On first load with authentication, prompt for profile setup if empty.
-    if (isAuthenticated) {
-      // Check the user-specific profile key in localStorage
-      const storedProfile = localStorage.getItem(businessProfileKey);
-      if (!storedProfile || !JSON.parse(storedProfile).name) {
-        setIsProfileModalOpen(true);
-      }
-    }
-  }, [isAuthenticated, businessProfileKey]);
-
-  // Check for payment status from Mercado Pago redirect
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const status = urlParams.get('status');
-    const collectionStatus = urlParams.get('collection_status'); // Alternative param
-
-    if (status === 'approved' || collectionStatus === 'approved') {
-      setPaymentStatus('success');
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (status === 'failure' || collectionStatus === 'failure' || status === 'rejected' || collectionStatus === 'rejected') {
-      setPaymentStatus('failure');
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    if (status || collectionStatus) {
-      setTimeout(() => setPaymentStatus(null), 5000); // Hide message after 5 seconds
+    // On first load, prompt for profile setup if the name is empty.
+    const storedProfile = localStorage.getItem('businessProfile_local');
+    if (!storedProfile || !JSON.parse(storedProfile).name) {
+      setIsProfileModalOpen(true);
     }
   }, []);
-
 
   const handleProfileChange = (updatedProfile: Partial<BusinessProfile>) => {
     setBusinessProfile(prev => ({ ...prev, ...updatedProfile }));
@@ -160,8 +69,6 @@ function AppContent() {
         return <QnaAssistant businessProfile={businessProfile} />;
       case 'products':
         return <ProductAssistant businessProfile={businessProfile} />;
-      case 'subscription':
-        return <SubscriptionManager />;
       case 'pdf':
         return <InstructionsPDF />;
       case 'posts':
@@ -177,35 +84,32 @@ function AppContent() {
     }
   };
 
-  if (!isAuthenticated) {
-    return <Auth />;
-  }
-
   // Main application view
   return (
-    <div className="min-h-screen bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-      <PaymentStatusBanner status={paymentStatus} onDismiss={() => setPaymentStatus(null)} />
-      <Header
-        activeView={activeView}
-        setActiveView={setActiveView}
-        onProfileClick={() => setIsProfileModalOpen(true)}
-      />
-      <main className="p-4 sm:p-6 lg:p-8">
-        {renderActiveView()}
-      </main>
+    <ThemeProvider>
+      <div className="min-h-screen bg-slate-200 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+        <Header
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onProfileClick={() => setIsProfileModalOpen(true)}
+        />
+        <main className="p-4 sm:p-6 lg:p-8">
+          {renderActiveView()}
+        </main>
 
-      {isProfileModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl">
-            <BusinessProfileSetup
-              profile={businessProfile}
-              onProfileChange={handleProfileChange}
-              onClose={() => setIsProfileModalOpen(false)}
-            />
+        {isProfileModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl">
+              <BusinessProfileSetup
+                profile={businessProfile}
+                onProfileChange={handleProfileChange}
+                onClose={() => setIsProfileModalOpen(false)}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </ThemeProvider>
   );
 }
 
