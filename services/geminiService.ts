@@ -1,22 +1,23 @@
+// FIX: Add a triple-slash directive to include Vite's client types, resolving the error
+// "Property 'env' does not exist on type 'ImportMeta'" by providing type definitions for import.meta.env.
+/// <reference types="vite/client" />
+
 import { GoogleGenAI } from "@google/genai";
 import { BusinessProfile } from '../types/index.ts';
 
-// --- INSTRUÇÕES ---
-// 1. Obtenha sua chave de API em https://aistudio.google.com/app/apikey
-// 2. Cole sua chave abaixo, substituindo o texto "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI".
-// ATENÇÃO: Esta chave ficará visível no código do frontend.
-// Para produção, o ideal é movê-la para um backend para maior segurança.
-const GEMINI_API_KEY = "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI";
+// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string;
 
-const apiKey = GEMINI_API_KEY;
-
-// Adiciona uma verificação para garantir que a chave foi alterada
-if (!apiKey || apiKey === "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI") {
-    console.error("A chave da API do Google GenAI não está configurada. Edite o arquivo 'services/geminiService.ts'.");
-}
+/**
+ * Checks if the Gemini API key has been configured by the user.
+ * @returns {boolean} True if the key is configured, false otherwise.
+ */
+export const isGeminiConfigured = (): boolean => {
+    return !!GEMINI_API_KEY && !GEMINI_API_KEY.startsWith("SUA_CHAVE");
+};
 
 // Initialize with a check for the API key to avoid creating an instance that will fail.
-const ai = (apiKey && apiKey !== "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI") ? new GoogleGenAI({ apiKey }) : null;
+const ai = isGeminiConfigured() ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 
 /**
@@ -24,25 +25,21 @@ const ai = (apiKey && apiKey !== "COLE_AQUI_SUA_CHAVE_DA_API_GEMINI") ? new Goog
  * It returns short `maps.app.goo.gl` links as is.
  * For long `google.com/maps` links, it removes query parameters to shorten them.
  * @param url - The original GBP URL.
- * @returns A cleaner, potentially shorter URL.
+ * @returns A cleaner, potencialmente shorter URL.
  */
 const getCleanGbpLink = (url: string): string => {
     if (!url) return '';
     try {
         const urlObject = new URL(url);
-        // If it's already a short link, return it as is.
         if (urlObject.hostname === 'maps.app.goo.gl') {
             return url;
         }
-        // If it's a long google.com/maps link, strip the query parameters.
         if (urlObject.hostname.includes('google.com')) {
             return `${urlObject.origin}${urlObject.pathname}`;
         }
     } catch (error) {
-        // If the URL is invalid, return it as is for the user to see the error.
         return url;
     }
-    // For any other case, return the original URL.
     return url;
 };
 
@@ -56,10 +53,9 @@ const getCleanGbpLink = (url: string): string => {
  */
 export const generatePostText = async (keywords: string, profile: BusinessProfile): Promise<string> => {
     if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada. Verifique o arquivo 'services/geminiService.ts'.");
+        throw new Error("A chave da API do Google GenAI não está configurada. Verifique suas variáveis de ambiente.");
     }
 
-    // Create the full WhatsApp link if a number is provided
     let whatsappLink = '';
     if (profile.whatsappNumber) {
         const number = profile.whatsappNumber.replace(/\D/g, '');
@@ -68,7 +64,6 @@ export const generatePostText = async (keywords: string, profile: BusinessProfil
         }
     }
     
-    // Dynamically create the CTA instruction based on whether a WhatsApp link exists
     const ctaInstruction = whatsappLink 
         ? `Após o corpo principal do post, adicione uma linha em branco. Em seguida, adicione a frase "Entre em contato pelo WhatsApp.". Na linha seguinte, adicione o link: ${whatsappLink}.`
         : 'Inclua uma chamada para ação (call to action) clara e genérica no final do corpo do texto, como "Saiba mais" ou "Visite-nos".';
@@ -80,13 +75,10 @@ export const generatePostText = async (keywords: string, profile: BusinessProfil
     
     const hashtagInstruction = 'No final de todo o post, após uma linha em branco, adicione entre 3 a 5 hashtags relevantes, separadas por espaços. Exemplo: #Padaria #PaesArtesanais #CafeDaManha';
 
-
-    // Dynamically build the example output to avoid showing a fake "Ir Agora" link if the user hasn't provided one.
     let exampleOutput = `Que tal um clássico delicioso para o seu almoço ou jantar?
 
 Na Padaria Bolonha, preparamos um autêntico macarrão a bolonhesa, com um molho rico e carne moída de primeira. É a combinação perfeita de sabor e conforto que você merece.`;
 
-    // Add WhatsApp part to example only if a number exists in the profile
     if (profile.whatsappNumber) {
         exampleOutput += `
 
@@ -94,14 +86,12 @@ Entre em contato pelo WhatsApp.
 https://wa.me/5511999998888`;
     }
 
-    // Add GBP link part to example only if a link exists in the profile
     if (cleanGbpLink) {
         exampleOutput += `
 
 Ir Agora: https://maps.app.goo.gl/XYZ123`;
     }
     
-    // Add hashtags to the example
     exampleOutput += `
 
 #PadariaBolonha #MacarraoBolonhesa #ComidaItaliana #Almoco`;
@@ -114,19 +104,17 @@ Ir Agora: https://maps.app.goo.gl/XYZ123`;
       1.  **Manchete:** Crie uma manchete curta e atrativa (uma frase ou pergunta).
       2.  **Linha em Branco:** Insira uma linha em branco após a manchete.
       3.  **Corpo do Texto:** Desenvolva o restante do post, detalhando a oferta ou notícia.
-      4.  **CTAs:** As chamadas para ação (WhatsApp e "Ir Agora") devem vir no final, após o corpo do texto, seguindo as regras abaixo.
-      5.  **Hashtags:** Adicione as hashtags no final de tudo, conforme a instrução específica.
+      4.  **CTAs e Hashtags:** Devem vir no final, após o corpo do texto, seguindo as regras abaixo.
 
       Instruções Gerais:
       - O tom deve ser profissional, mas amigável e convidativo.
-      - O post deve ser conciso e direto.
-      - O post deve ter no máximo 1500 caracteres no total.
+      - O post deve ser conciso e direto, com no máximo 1500 caracteres.
       - ${ctaInstruction}
       - ${gbpLinkInstruction}
       - ${hashtagInstruction}
       - Retorne apenas o texto do post, sem nenhuma formatação extra, introduções ou observações.
 
-      Exemplo de output com a nova estrutura:
+      Exemplo de output:
       ${exampleOutput}
     `;
 
@@ -141,8 +129,6 @@ Ir Agora: https://maps.app.goo.gl/XYZ123`;
         if (!text) {
           throw new Error('A API da IA não retornou texto.');
         }
-
-        // Trim the response to remove any extraneous whitespace from the model.
         return text.trim();
 
     } catch (error) {
@@ -155,40 +141,16 @@ Ir Agora: https://maps.app.goo.gl/XYZ123`;
  * Generates a search query for Unsplash based on the post text.
  * @param postText - The text of the post.
  * @returns A promise that resolves to a concise search query.
- * @throws An error if the API call fails.
  */
 export const generateImageSearchQuery = async (postText: string): Promise<string> => {
-    if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada.");
-    }
+    if (!ai) throw new Error("A chave da API do Google GenAI não está configurada.");
   
-    const model = 'gemini-2.5-flash';
-
-    const prompt = `
-      Baseado no seguinte texto de post para o Google Business Profile, crie um termo de busca curto e eficaz (2-4 palavras) em português para encontrar uma imagem de estoque relevante.
-      O termo de busca deve ser genérico o suficiente para encontrar boas imagens no Unsplash.
-
-      Texto do Post: "${postText}"
-
-      Exemplo de output para um post sobre consultoria financeira:
-      "reunião de negócios finanças"
-
-      Retorne apenas o termo de busca, sem nenhuma formatação extra, introduções ou observações.
-    `;
+    const prompt = `Baseado no seguinte texto de post, crie um termo de busca curto e eficaz (2-4 palavras) em português para encontrar uma imagem de estoque relevante no Unsplash. Retorne apenas o termo de busca. Texto do Post: "${postText}"`;
   
     try {
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-        });
-        
-        const text = response.text;
-
-        if (!text) {
-            throw new Error('A API da IA não gerou uma consulta de imagem.');
-        }
-
-        return text.trim();
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        if (!response.text) throw new Error('A API da IA não gerou uma consulta de imagem.');
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating image query with Gemini API:", error);
         throw new Error("Erro ao gerar sugestão de imagem.");
@@ -199,38 +161,16 @@ export const generateImageSearchQuery = async (postText: string): Promise<string
  * Generates a short, catchy phrase for an image overlay.
  * @param postText - The main text of the post.
  * @returns A promise that resolves to a short text suggestion.
- * @throws An error if the API call fails.
  */
 export const generateImageTextSuggestion = async (postText: string): Promise<string> => {
-    if (!ai) {
-        throw new Error("IA não configurada.");
-    }
+    if (!ai) throw new Error("IA não configurada.");
 
-    const prompt = `
-      Baseado no seguinte texto de post, crie uma frase curta e de impacto (máximo 5 palavras) para ser sobreposta em uma imagem.
-      A frase deve ser um gancho visual, como uma pergunta ou uma afirmação forte.
-
-      Texto do Post: "${postText}"
-
-      Exemplo de output para um post sobre consultoria financeira:
-      "Suas finanças, seu futuro."
-
-      Retorne apenas a frase, sem nenhuma formatação extra, introduções ou observações.
-    `;
+    const prompt = `Baseado no seguinte texto de post, crie uma frase curta e de impacto (máximo 5 palavras) para ser sobreposta em uma imagem. Retorne apenas a frase. Texto do Post: "${postText}"`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-        
-        const text = response.text;
-
-        if (!text) {
-          throw new Error('A API da IA não gerou texto para a imagem.');
-        }
-
-        return text.trim();
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        if (!response.text) throw new Error('A API da IA não gerou texto para a imagem.');
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating image text suggestion with Gemini API:", error);
         throw new Error("Erro ao gerar texto para a imagem.");
@@ -243,53 +183,28 @@ export const generateImageTextSuggestion = async (postText: string): Promise<str
  * @param rating - The star rating given by the customer (1-5).
  * @param profile - The business profile.
  * @returns A promise that resolves to a suggested response.
- * @throws An error if the API call fails.
  */
 export const generateReviewResponse = async (reviewText: string, rating: number, profile: BusinessProfile): Promise<string> => {
-    if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada.");
-    }
+    if (!ai) throw new Error("A chave da API do Google GenAI não está configurada.");
 
     let toneInstruction = '';
     if (rating >= 4) {
-        toneInstruction = "O tom deve ser caloroso e grato. Se o cliente mencionou algo específico que gostou, tente fazer referência a isso para mostrar que a avaliação foi lida com atenção.";
+        toneInstruction = "O tom deve ser caloroso e grato.";
     } else if (rating === 3) {
-        toneInstruction = "O tom deve ser equilibrado e profissional. Agradeça pelo feedback honesto e mostre que a empresa está comprometida em melhorar. Reconheça os pontos positivos e negativos se mencionados.";
+        toneInstruction = "O tom deve ser equilibrado e profissional. Agradeça pelo feedback e mostre compromisso em melhorar.";
     } else {
-        toneInstruction = "O tom deve ser sério, empático e muito profissional. Peça desculpas pela experiência negativa. Ofereça uma maneira de resolver o problema offline (por exemplo, 'Gostaríamos muito de entender melhor o que aconteceu. Por favor, entre em contato conosco diretamente'). Não dê desculpas nem seja defensivo.";
+        toneInstruction = "O tom deve ser sério, empático e muito profissional. Peça desculpas pela experiência e ofereça uma maneira de resolver o problema offline.";
     }
 
-    const prompt = `
-        Você é um gerente de comunidade para a empresa "${profile.name}". Sua tarefa é responder a uma avaliação de cliente de forma profissional e amigável.
-
-        Avaliação do Cliente (Nota ${rating}/5):
-        "${reviewText}"
-
-        Instruções de Tom e Conteúdo:
-        - ${toneInstruction}
-        - Mantenha a resposta concisa e respeitosa.
-        - Sempre agradeça ao cliente pela avaliação, independentemente da nota.
-        - Personalize a resposta, evitando respostas genéricas.
-        - Retorne apenas o texto da resposta, sem introduções extras como "Aqui está uma sugestão de resposta:".
-    `;
+    const prompt = `Você é gerente da empresa "${profile.name}". Responda a uma avaliação de cliente (Nota ${rating}/5): "${reviewText}". Instruções: ${toneInstruction} Agradeça sempre. Personalize a resposta. Retorne apenas o texto da resposta.`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-
-        const text = response.text;
-        
-        if (!text) {
-            throw new Error('A API da IA não gerou uma resposta.');
-        }
-
-        return text.trim();
-
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        if (!response.text) throw new Error('A API da IA não gerou uma resposta.');
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating review response with Gemini API:", error);
-        throw new Error("Ocorreu um erro ao gerar a resposta com a IA. Por favor, verifique sua chave de API e tente novamente.");
+        throw new Error("Ocorreu um erro ao gerar a resposta com a IA.");
     }
 };
 
@@ -298,44 +213,19 @@ export const generateReviewResponse = async (reviewText: string, rating: number,
  * @param question - The customer's question.
  * @param profile - The business profile.
  * @returns A promise that resolves to a suggested answer.
- * @throws An error if the API call fails.
  */
 export const generateQnaResponse = async (question: string, profile: BusinessProfile): Promise<string> => {
-    if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada.");
-    }
+    if (!ai) throw new Error("A chave da API do Google GenAI não está configurada.");
 
-    const prompt = `
-        Você é o gerente da empresa "${profile.name}". Sua tarefa é criar uma resposta clara, útil e amigável para uma pergunta frequente de clientes.
-
-        Pergunta do Cliente:
-        "${question}"
-
-        Instruções:
-        - Responda diretamente à pergunta.
-        - Mantenha a resposta concisa e fácil de entender.
-        - O tom deve ser profissional e prestativo.
-        - Se relevante, inclua uma chamada para ação sutil (Ex: "Esperamos por você!", "Venha nos visitar.").
-        - Retorne apenas o texto da resposta, sem nenhuma introdução como "Aqui está a resposta:".
-    `;
+    const prompt = `Você é o gerente da empresa "${profile.name}". Responda a pergunta de um cliente de forma clara, útil e amigável. Pergunta: "${question}". Instruções: Responda diretamente, seja conciso e profissional. Retorne apenas o texto da resposta.`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-
-        const text = response.text;
-        
-        if (!text) {
-            throw new Error('A API da IA não gerou uma resposta para a pergunta.');
-        }
-
-        return text.trim();
-
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        if (!response.text) throw new Error('A API da IA não gerou uma resposta.');
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating Q&A response with Gemini API:", error);
-        throw new Error("Ocorreu um erro ao gerar a resposta com a IA. Por favor, verifique sua chave de API e tente novamente.");
+        throw new Error("Ocorreu um erro ao gerar a resposta com a IA.");
     }
 };
 
@@ -345,46 +235,18 @@ export const generateQnaResponse = async (question: string, profile: BusinessPro
  * @param keywords - Keywords or features of the product.
  * @param profile - The business profile.
  * @returns A promise that resolves to a suggested description.
- * @throws An error if the API call fails.
  */
 export const generateProductDescription = async (productName: string, keywords: string, profile: BusinessProfile): Promise<string> => {
-    if (!ai) {
-        throw new Error("A chave da API do Google GenAI não está configurada.");
-    }
+    if (!ai) throw new Error("A chave da API do Google GenAI não está configurada.");
 
-    const prompt = `
-        Você é um redator de marketing para a empresa "${profile.name}". Sua tarefa é criar uma descrição curta e persuasiva para um produto ou serviço para ser usada no catálogo do Google Business Profile.
-
-        Produto/Serviço:
-        "${productName}"
-
-        Características/Palavras-chave:
-        "${keywords}"
-
-        Instruções:
-        - Crie uma descrição concisa (2-3 frases).
-        - Foque nos benefícios para o cliente, não apenas nas características.
-        - O tom deve ser convidativo e profissional.
-        - O texto deve ser otimizado para convencer o cliente a escolher este produto/serviço.
-        - Retorne apenas o texto da descrição, sem nenhuma introdução como "Aqui está a descrição:".
-    `;
+    const prompt = `Você é redator da empresa "${profile.name}". Crie uma descrição curta e persuasiva para o produto/serviço "${productName}" com as características: "${keywords}". Instruções: 2-3 frases, focando nos benefícios para o cliente. Retorne apenas o texto da descrição.`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-        });
-
-        const text = response.text;
-        
-        if (!text) {
-            throw new Error('A API da IA não gerou uma descrição para o produto.');
-        }
-
-        return text.trim();
-
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        if (!response.text) throw new Error('A API da IA não gerou uma descrição.');
+        return response.text.trim();
     } catch (error) {
         console.error("Error generating product description with Gemini API:", error);
-        throw new Error("Ocorreu um erro ao gerar a descrição com a IA. Por favor, verifique sua chave de API e tente novamente.");
+        throw new Error("Ocorreu um erro ao gerar a descrição com a IA.");
     }
 };

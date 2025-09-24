@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Post, BusinessProfile, ImageText } from '../../types/index.ts';
-import { generatePostText } from '../../services/geminiService.ts';
+import { Post, ImageText, BusinessProfile } from '../../types/index.ts';
+import { generatePostText, isGeminiConfigured } from '../../services/geminiService.ts';
 import ImageSearch from './ImageSearch.tsx';
 import ImageEditor from './ImageEditor.tsx';
 import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
@@ -9,15 +9,16 @@ import { IconButton } from '../../components/ui/IconButton.tsx';
 
 interface PostCreatorProps {
   post: Post;
-  businessProfile: BusinessProfile;
   onPostChange: (updatedPost: Post) => void;
   onNewPost: () => void;
+  businessProfile: BusinessProfile;
 }
 
-const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPostChange, onNewPost }) => {
+const PostCreator: React.FC<PostCreatorProps> = ({ post, onPostChange, onNewPost, businessProfile }) => {
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const geminiConfigured = isGeminiConfigured();
   
   const handleInputChange = (field: keyof Post, value: string | null | ImageText | boolean) => {
     onPostChange({ ...post, [field]: value });
@@ -28,7 +29,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
       alert('Por favor, preencha as palavras-chave.');
       return;
     }
-    if (!businessProfile.name) {
+    if (!businessProfile || !businessProfile.name) {
       alert('Por favor, preencha o nome da empresa no Perfil do Negócio.');
       return;
     }
@@ -45,7 +46,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
   };
   
   const handleImageSelect = (url: string | null, alt: string | null) => {
-    // When a new image is selected, reset any existing image text
     onPostChange({ ...post, imageUrl: url, imageDescription: alt, imageText: null });
   };
 
@@ -94,7 +94,8 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
             />
             <button
               onClick={handleGenerateText}
-              disabled={isGeneratingText}
+              disabled={isGeneratingText || !geminiConfigured}
+              title={!geminiConfigured ? "Adicione sua chave de API do Gemini para usar esta função." : "Gerar texto com IA"}
               className="py-3 px-5 rounded-lg bg-slate-300 dark:bg-slate-700 font-semibold hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               {isGeneratingText ? 'Gerando...' : 'Gerar Texto'}
@@ -178,14 +179,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, businessProfile, onPost
                 <li><strong>Passo 2: Gere e Edite o Texto:</strong> Com um clique, a IA cria uma manchete, um texto persuasivo e hashtags relevantes. Você pode editar o texto livremente para ajustá-lo à sua preferência.</li>
                 <li><strong>Passo 3: Adicione uma Imagem:</strong> Busque uma imagem profissional online, suba uma do seu computador e edite-a adicionando textos, seu logo e outros elementos para torná-la única.</li>
                  <li><strong>Passo 4: Copie e Cole:</strong> Com tudo pronto, clique no botão "Copiar Texto e Baixar Imagem". O texto formatado (com links, hashtags, etc.) irá para sua área de transferência, e a imagem será baixada. Depois, é só colar no seu GBP!</li>
-            </ul>
-
-            <h3 className="font-bold text-lg">Vantagens:</h3>
-            <ul className="list-disc list-inside space-y-2">
-                <li><strong>Economia de Tempo:</strong> Crie posts completos em minutos, não em horas.</li>
-                <li><strong>Textos Profissionais:</strong> A IA utiliza técnicas de marketing para criar textos que convertem.</li>
-                <li><strong>Identidade Visual:</strong> Personalize suas imagens com seu logo e mensagens de impacto.</li>
-                <li><strong>Aumento de Engajamento:</strong> Posts de alta qualidade com hashtags relevantes geram mais visualizações, cliques e clientes.</li>
             </ul>
         </div>
       </InfoModal>

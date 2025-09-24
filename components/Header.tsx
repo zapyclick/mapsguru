@@ -7,13 +7,14 @@ import { View } from '../App.tsx';
 interface HeaderProps {
   activeView: View;
   setActiveView: (view: View) => void;
-  onProfileClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileClick }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setActiveView }) => {
   const { theme, toggleTheme } = useTheme();
+  
   const [isFeaturesMenuOpen, setIsFeaturesMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const featuresMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -22,10 +23,10 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     reviews: 'Assistente de Avaliações',
     qna: 'Gerador de Q&A',
     products: 'Catálogo de Produtos',
-    pdf: 'Salvar Instruções (PDF)',
+    profile: 'Perfil do Negócio',
+    pdf: 'Instruções',
   };
 
-  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (featuresMenuRef.current && !featuresMenuRef.current.contains(event.target as Node)) {
@@ -44,6 +45,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
       <div className="relative" ref={isMobile ? null : featuresMenuRef}>
         <IconButton onClick={() => setIsFeaturesMenuOpen(!isFeaturesMenuOpen)} aria-label="Recursos">
           <span className="material-symbols-outlined">auto_awesome</span>
+          <span className="md:hidden ml-2">Ferramentas</span>
         </IconButton>
         {isFeaturesMenuOpen && (
           <NeumorphicCard className="absolute top-14 right-0 w-64 p-2 z-20">
@@ -72,14 +74,11 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
         )}
       </div>
 
-      <IconButton onClick={onProfileClick} aria-label="Perfil do Negócio">
-        <span className="material-symbols-outlined">storefront</span>
-      </IconButton>
-
       <IconButton onClick={toggleTheme} aria-label="Alternar tema">
         <span className="material-symbols-outlined">
           {theme === 'light' ? 'dark_mode' : 'light_mode'}
         </span>
+         <span className="md:hidden ml-2">Tema</span>
       </IconButton>
     </>
   );
@@ -88,30 +87,27 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, onProfileCli
     <div className="m-4 sm:m-6 lg:m-8 print:hidden">
         <NeumorphicCard as="header" className="p-4 !rounded-xl">
         <div className="flex justify-between items-center">
-            {/* Left Side: Logo and Title */}
             <div className="flex items-center gap-3">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
-                Zmaps gestão inteligente para negócios locais
-            </h1>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                  Zmaps
+              </h1>
             </div>
 
-            {/* Right Side: Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
-            {renderNavItems()}
+              {renderNavItems()}
             </div>
 
-            {/* Mobile Menu Button */}
             <div className="md:hidden" ref={mobileMenuRef}>
-            <IconButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Menu">
-                <span className="material-symbols-outlined">menu</span>
-            </IconButton>
-            {isMobileMenuOpen && (
-                <NeumorphicCard className="absolute top-20 right-4 sm:right-6 lg:right-8 w-auto p-4 z-20">
-                    <div className="flex flex-col items-center gap-3">
-                        {renderNavItems(true)}
-                    </div>
-                </NeumorphicCard>
-            )}
+              <IconButton onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Menu">
+                  <span className="material-symbols-outlined">menu</span>
+              </IconButton>
+              {isMobileMenuOpen && (
+                  <NeumorphicCard className="absolute top-20 right-4 sm:right-6 lg:right-8 w-auto p-4 z-20">
+                      <div className="flex flex-col items-start gap-3">
+                          {renderNavItems(true)}
+                      </div>
+                  </NeumorphicCard>
+              )}
             </div>
         </div>
         </NeumorphicCard>

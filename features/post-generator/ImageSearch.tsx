@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UnsplashImage } from '../../types/index.ts';
-import { searchImages } from '../../services/unsplashService.ts';
+import { searchImages, isUnsplashConfigured } from '../../services/unsplashService.ts';
 import { NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
 
 interface ImageSearchProps {
@@ -13,6 +13,7 @@ const ImageSearch: React.FC<ImageSearchProps> = ({ onImageSelect, selectedImageU
   const [images, setImages] = useState<UnsplashImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const unsplashConfigured = isUnsplashConfigured();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +68,12 @@ const ImageSearch: React.FC<ImageSearchProps> = ({ onImageSelect, selectedImageU
               className="w-full bg-transparent p-3 outline-none"
             />
           </NeumorphicCardInset>
-          <button type="submit" className="py-3 px-5 rounded-lg bg-slate-300 dark:bg-slate-700 font-semibold hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors">
+          <button
+            type="submit"
+            disabled={!unsplashConfigured}
+            title={!unsplashConfigured ? "Adicione sua chave de API do Unsplash para usar esta função." : undefined}
+            className="py-3 px-5 rounded-lg bg-slate-300 dark:bg-slate-700 font-semibold hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Buscar
           </button>
         </form>

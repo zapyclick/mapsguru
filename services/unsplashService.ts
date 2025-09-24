@@ -1,17 +1,23 @@
+// FIX: Add a triple-slash directive to include Vite's client types, resolving the error
+// "Property 'env' does not exist on type 'ImportMeta'" by providing type definitions for import.meta.env.
+/// <reference types="vite/client" />
+
 import { UnsplashImage } from '../types/index.ts';
 
 const API_BASE_URL = 'https://api.unsplash.com';
 
-// ATENÇÃO: Cole sua Chave de Acesso (Access Key) do Unsplash abaixo.
-// SUBSTITUA O TEXTO 'COLE_AQUI_SUA_ACCESS_KEY_DO_UNSPLASH' PELA SUA CHAVE REAL.
-// ---
-// NOTA DE SEGURANÇA PARA PRODUÇÃO:
-// Expor sua chave de API do Unsplash no código do frontend (cliente) não é seguro.
-// Em um aplicativo real, essa chave deve ser movida para um backend (como uma Função Serverless)
-// que atue como um proxy. O seu app faria uma chamada para o seu backend, e o seu backend,
-// de forma segura, faria a chamada para a API do Unsplash.
-// ---
-const UNSPLASH_ACCESS_KEY: string = 'CGYigQ8Iy6Vg8jIY9yQNZ62Jn5dMV9iYd4vqUIg-QR0';
+// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
+// O `as string` garante ao TypeScript que essa variável existirá.
+const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string;
+
+/**
+ * Checks if the Unsplash API key has been configured by the user.
+ * @returns {boolean} True if the key is configured, false otherwise.
+ */
+export const isUnsplashConfigured = (): boolean => {
+    return !!UNSPLASH_ACCESS_KEY && !UNSPLASH_ACCESS_KEY.startsWith('COLE_AQUI');
+};
+
 
 /**
  * Searches for images on Unsplash.
@@ -21,9 +27,9 @@ const UNSPLASH_ACCESS_KEY: string = 'CGYigQ8Iy6Vg8jIY9yQNZ62Jn5dMV9iYd4vqUIg-QR0
  */
 export const searchImages = async (query: string): Promise<UnsplashImage[]> => {
   // CORREÇÃO DEFINITIVA: Verifica se a chave foi alterada ou se ainda é o valor placeholder.
-  if (!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY === 'COLE_AQUI_SUA_ACCESS_KEY_DO_UNSPLASH') {
+  if (!isUnsplashConfigured()) {
     // Lança um erro específico para que a UI possa informar o usuário.
-    throw new Error('A chave da API do Unsplash não está configurada. Cole a chave em services/unsplashService.ts para buscar imagens.');
+    throw new Error('A chave da API do Unsplash não está configurada. Siga as instruções para habilitar a busca de imagens.');
   }
 
   try {

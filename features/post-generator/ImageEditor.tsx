@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, MouseEvent } from 'react';
 import { ImageText, BusinessProfile } from '../../types/index.ts';
 import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
-import { generateImageTextSuggestion } from '../../services/geminiService.ts';
+import { generateImageTextSuggestion, isGeminiConfigured } from '../../services/geminiService.ts';
 
 interface ImageEditorProps {
   isOpen: boolean;
@@ -50,6 +50,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, textX: 0, textY: 0 });
+  const geminiConfigured = isGeminiConfigured();
 
   useEffect(() => {
     setTextState(initialTextState || DEFAULT_TEXT_STATE);
@@ -328,7 +329,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, onClose, onSave, imag
                     rows={3}
                 />
               </NeumorphicCardInset>
-              <button onClick={handleGenerateSuggestion} disabled={isGeneratingSuggestion} className="text-sm text-blue-500 hover:underline mt-2 disabled:opacity-50">
+              <button 
+                onClick={handleGenerateSuggestion} 
+                disabled={isGeneratingSuggestion || !geminiConfigured} 
+                title={!geminiConfigured ? "Adicione sua chave de API do Gemini para usar esta função." : undefined}
+                className="text-sm text-blue-500 hover:underline mt-2 disabled:opacity-50 disabled:text-slate-400 disabled:cursor-not-allowed disabled:no-underline"
+              >
                 {isGeneratingSuggestion ? 'Gerando...' : 'Gerar sugestão com IA'}
               </button>
             </div>

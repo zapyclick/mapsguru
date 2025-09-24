@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BusinessProfile } from '../../types/index.ts';
-import { generateReviewResponse } from '../../services/geminiService.ts';
+import { generateReviewResponse, isGeminiConfigured } from '../../services/geminiService.ts';
 import { NeumorphicCard, NeumorphicCardInset } from '../../components/ui/NeumorphicCard.tsx';
 import { IconButton } from '../../components/ui/IconButton.tsx';
 import InfoModal from '../../components/ui/InfoModal.tsx';
@@ -16,6 +16,7 @@ const ReviewAssistant: React.FC<ReviewAssistantProps> = ({ businessProfile }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success'>('idle');
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const geminiConfigured = isGeminiConfigured();
 
   const handleGenerateResponse = async () => {
     if (!reviewText) {
@@ -113,7 +114,8 @@ const ReviewAssistant: React.FC<ReviewAssistantProps> = ({ businessProfile }) =>
         <div className="text-center">
           <button
             onClick={handleGenerateResponse}
-            disabled={isLoading}
+            disabled={isLoading || !geminiConfigured}
+            title={!geminiConfigured ? "Adicione sua chave de API do Gemini para usar esta função." : undefined}
             className="w-full sm:w-auto py-3 px-8 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Gerando Resposta...' : 'Gerar Resposta'}

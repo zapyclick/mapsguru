@@ -1,3 +1,4 @@
+
 // Represents the structure of an image object from the Unsplash API
 export interface UnsplashImage {
   id: string;
@@ -42,8 +43,9 @@ export interface ImageText {
   cornerRadius: number;
 }
 
-// Represents the business profile information
+// Represents the business profile information stored locally
 export interface BusinessProfile {
+  id: string; 
   name: string;
   whatsappNumber: string;
   gbpLink: string;

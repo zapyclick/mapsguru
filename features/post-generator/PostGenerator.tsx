@@ -15,9 +15,10 @@ const PostGenerator: React.FC<PostGeneratorProps> = ({ activePost, setActivePost
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <PostCreator
                 post={activePost}
-                businessProfile={businessProfile}
                 onPostChange={setActivePost}
                 onNewPost={handleNewPost}
+                // FIX: Pass the businessProfile prop to PostCreator to resolve the missing property error.
+                businessProfile={businessProfile}
             />
             <PostPreview post={activePost} businessProfile={businessProfile} />
         </div>
