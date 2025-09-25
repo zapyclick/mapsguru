@@ -1,11 +1,15 @@
-
 import React from 'react';
 import { NeumorphicCard } from '../../components/ui/NeumorphicCard.tsx';
+import { isGeminiConfigured } from '../../services/geminiService.ts';
+import { isUnsplashConfigured } from '../../services/unsplashService.ts';
 
 const InstructionsPDF: React.FC = () => {
   const handlePrint = () => {
     window.print();
   };
+
+  const geminiStatus = isGeminiConfigured();
+  const unsplashStatus = isUnsplashConfigured();
 
   const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <section className="mt-8 break-inside-avoid">
@@ -14,12 +18,6 @@ const InstructionsPDF: React.FC = () => {
         {children}
       </div>
     </section>
-  );
-
-  const CodeBlock: React.FC<{ children: React.ReactNode; lang?: string }> = ({ children, lang }) => (
-    <pre className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg text-sm print:bg-gray-100 print:text-black print:border print:border-gray-300 overflow-x-auto">
-      <code className={lang ? `language-${lang}` : ''}>{children}</code>
-    </pre>
   );
 
   return (
@@ -38,56 +36,63 @@ const InstructionsPDF: React.FC = () => {
           </div>
           
           <div id="printable-content" className="text-base">
-            <h2 className="text-2xl font-bold print:text-3xl">Guia Rápido de Configuração das APIs</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 print:text-gray-600"><strong>Objetivo:</strong> Habilitar todas as funcionalidades de Inteligência Artificial do aplicativo configurando suas chaves de API.</p>
+            <h2 className="text-2xl font-bold print:text-3xl">Instruções para o Ambiente do AI Studio</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 print:text-gray-600">Para que o aplicativo funcione, você precisa adicionar suas chaves de API de forma segura usando o painel "Secrets".</p>
 
-            <Section title="O que são as Chaves de API?">
-              <p>
-                Para que o aplicativo possa gerar textos com a IA do Google (Gemini) e buscar imagens profissionais (Unsplash), ele precisa de "chaves de acesso" ou "API Keys". Pense nelas como senhas que dão ao aplicativo permissão para usar esses serviços.
-              </p>
-              <p className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-sm">
-                <strong>Importante:</strong> Suas chaves de API são secretas. Nunca as compartilhe publicamente ou as coloque diretamente no código.
-              </p>
+            <Section title="Verificação de Status">
+              <p>Use esta seção para verificar se suas chaves foram carregadas corretamente pelo aplicativo.</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <span className={`material-symbols-outlined text-2xl ${geminiStatus ? 'text-green-500' : 'text-red-500'}`}>
+                    {geminiStatus ? 'check_circle' : 'cancel'}
+                  </span>
+                  <div>
+                    <p className="font-bold">API do Google Gemini</p>
+                    <p className="text-sm">{geminiStatus ? 'Configurada corretamente!' : 'Não configurada. Adicione um "Secret" com o nome API_KEY.'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <span className={`material-symbols-outlined text-2xl ${unsplashStatus ? 'text-green-500' : 'text-red-500'}`}>
+                    {unsplashStatus ? 'check_circle' : 'cancel'}
+                  </span>
+                  <div>
+                    <p className="font-bold">API do Unsplash</p>
+                    <p className="text-sm">{unsplashStatus ? 'Configurada corretamente!' : 'Não configurada. Adicione um "Secret" com o nome VITE_UNSPLASH_ACCESS_KEY.'}</p>
+                  </div>
+                </div>
+              </div>
             </Section>
 
-            <Section title="Passo a Passo para Configurar">
-              <ol className="list-decimal list-inside space-y-3 pl-2">
+            <Section title="Passo a Passo (Configuração Correta)">
+              <ol className="list-decimal list-inside space-y-4 pl-2">
                 <li>
-                  <strong>Encontre o Gerenciador de "Secrets":</strong>
-                  <p className="mt-1">Neste ambiente de desenvolvimento, procure por um painel chamado <strong>"Secrets"</strong> ou <strong>"Environment Variables"</strong>. Ele geralmente é identificado por um ícone de chave <span className="material-symbols-outlined text-sm align-middle">key</span> ou cadeado <span className="material-symbols-outlined text-sm align-middle">lock</span>.</p>
+                  <strong>Abra o painel "Secrets"</strong>
+                  <p className="mt-1">Na barra de ferramentas à esquerda, clique no ícone de <strong>chave (🔑)</strong> para abrir o painel de "Secrets".</p>
                 </li>
                 <li>
-                  <strong>Adicione as Duas Chaves Necessárias:</strong>
-                  <p className="mt-1">Você precisará adicionar duas chaves (secrets). Use os nomes exatos abaixo para cada uma, substituindo o texto de exemplo pela sua chave real:</p>
-                  
-                  <h4 className="font-bold mt-3">1. Chave da API do Google Gemini</h4>
-                  <p className="text-xs italic">Necessária para toda a geração de texto.</p>
-                  <CodeBlock>{`API_KEY="SUA_CHAVE_DA_API_GEMINI"`}</CodeBlock>
-                  <p className="mt-1">
-                    Copie o nome <code>API_KEY</code> para o campo "Name" ou "Key" do secret, e sua chave pessoal do Google Gemini para o campo "Value".
-                    Você pode obter sua chave em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500">Google AI Studio</a>.
-                  </p>
-
-                  <h4 className="font-bold mt-3">2. Chave de Acesso do Unsplash</h4>
-                  <p className="text-xs italic">Necessária para a busca de imagens online.</p>
-                  <CodeBlock>{`UNSPLASH_ACCESS_KEY="SUA_CHAVE_DE_ACESSO_DO_UNSPLASH"`}</CodeBlock>
-                  <p className="mt-1">
-                    Copie 
-                    <code>UNSPLASH_ACCESS_KEY</code> para o campo "Name" e sua "Access Key" do Unsplash para o campo "Value". Você pode criar um aplicativo e obter sua chave em 
-                    <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-blue-500">Unsplash for Developers</a>.
-                  </p>
+                  <strong>Adicione a Chave do Google Gemini</strong>
+                  <p className="mt-1">Clique em "Add new secret" e preencha os campos:</p>
+                  <ul className="list-disc list-inside ml-6 mt-2">
+                      <li><strong>Name:</strong> <code className="bg-slate-200 dark:bg-slate-700 p-1 rounded">API_KEY</code></li>
+                      <li><strong>Value:</strong> Cole sua chave da API do Gemini aqui (sem aspas).</li>
+                  </ul>
+                </li>
+                 <li>
+                    <strong>Adicione a Chave do Unsplash</strong>
+                    <p className="mt-1">Clique em "Add new secret" novamente e preencha:</p>
+                     <ul className="list-disc list-inside ml-6 mt-2">
+                        <li><strong>Name:</strong> <code className="bg-slate-200 dark:bg-slate-700 p-1 rounded">VITE_UNSPLASH_ACCESS_KEY</code></li>
+                        <li><strong>Value:</strong> Cole sua chave de acesso do Unsplash aqui (sem aspas).</li>
+                    </ul>
+                    <p className="text-xs mt-2 text-slate-500 dark:text-slate-400">O prefixo `VITE_` é uma convenção necessária neste ambiente para chaves personalizadas.</p>
                 </li>
                 <li>
                     <strong>Atualize o Aplicativo:</strong>
-                    <p className="mt-1">Depois de salvar os "secrets", pode ser necessário atualizar a página ou reiniciar a aplicação para que as novas chaves sejam carregadas.</p>
+                    <p className="mt-1">Após salvar as chaves, atualize a página da aplicação. A seção "Verificação de Status" acima deve mostrar os dois itens como configurados, e todas as funcionalidades estarão habilitadas.</p>
                 </li>
               </ol>
             </Section>
             
-            <Section title="Verificação">
-              <p>Se tudo estiver configurado corretamente, o aviso vermelho no topo do aplicativo desaparecerá e o botão "Buscar" na seção de imagens ficará habilitado. Agora você pode usar 100% do poder da IA para criar seus posts!</p>
-            </Section>
-
           </div>
         </NeumorphicCard>
       </div>

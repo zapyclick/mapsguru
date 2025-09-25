@@ -1,9 +1,8 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { BusinessProfile } from '../types/index.ts';
 
-// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
-const GEMINI_API_KEY = process.env.API_KEY as string;
+// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente da plataforma.
+const GEMINI_API_KEY = process.env.API_KEY;
 const GEMINI_PLACEHOLDER = "SUA_CHAVE_DA_API_GEMINI";
 
 /**
@@ -11,6 +10,7 @@ const GEMINI_PLACEHOLDER = "SUA_CHAVE_DA_API_GEMINI";
  * @returns {boolean} True if the key is configured, false otherwise.
  */
 export const isGeminiConfigured = (): boolean => {
+    // A verificação do placeholder é mantida como um fallback, mas a verificação principal é se a chave existe.
     return !!GEMINI_API_KEY && GEMINI_API_KEY !== GEMINI_PLACEHOLDER;
 };
 

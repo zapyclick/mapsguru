@@ -1,11 +1,10 @@
-
 import { UnsplashImage } from '../types/index.ts';
 
 const API_BASE_URL = 'https://api.unsplash.com';
 
-// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
-// O `as string` garante ao TypeScript que essa variável existirá.
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY as string;
+// PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente da plataforma.
+// O prefixo VITE_ é uma convenção para chaves personalizadas neste ambiente.
+const UNSPLASH_ACCESS_KEY = process.env.VITE_UNSPLASH_ACCESS_KEY;
 const UNSPLASH_PLACEHOLDER = "SUA_CHAVE_DE_ACESSO_DO_UNSPLASH";
 
 
