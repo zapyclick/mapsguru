@@ -1,19 +1,17 @@
-// FIX: Add a triple-slash directive to include Vite's client types, resolving the error
-// "Property 'env' does not exist on type 'ImportMeta'" by providing type definitions for import.meta.env.
-/// <reference types="vite/client" />
 
 import { GoogleGenAI } from "@google/genai";
 import { BusinessProfile } from '../types/index.ts';
 
 // PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string;
+const GEMINI_API_KEY = process.env.API_KEY as string;
+const GEMINI_PLACEHOLDER = "SUA_CHAVE_DA_API_GEMINI";
 
 /**
  * Checks if the Gemini API key has been configured by the user.
  * @returns {boolean} True if the key is configured, false otherwise.
  */
 export const isGeminiConfigured = (): boolean => {
-    return !!GEMINI_API_KEY && !GEMINI_API_KEY.startsWith("SUA_CHAVE");
+    return !!GEMINI_API_KEY && GEMINI_API_KEY !== GEMINI_PLACEHOLDER;
 };
 
 // Initialize with a check for the API key to avoid creating an instance that will fail.
@@ -47,14 +45,24 @@ const getCleanGbpLink = (url: string): string => {
 /**
  * Generates post text using Gemini API.
  * @param keywords - Keywords to base the post on.
+ * @param tone - The desired tone of voice for the post.
  * @param profile - Business profile information.
  * @returns A promise that resolves to the generated post text.
  * @throws An error if the API call fails.
  */
-export const generatePostText = async (keywords: string, profile: BusinessProfile): Promise<string> => {
+export const generatePostText = async (keywords: string, tone: string, profile: BusinessProfile): Promise<string> => {
     if (!ai) {
         throw new Error("A chave da API do Google GenAI não está configurada. Verifique suas variáveis de ambiente.");
     }
+    
+    const toneInstructionMap: Record<string, string> = {
+        'Amigável': 'O tom deve ser amigável e convidativo, como se estivesse conversando com um amigo.',
+        'Profissional': 'O tom deve ser profissional, formal e focado em transmitir confiança e autoridade.',
+        'Divertido': 'O tom deve ser divertido e descontraído, usando uma linguagem leve e talvez um pouco de humor.',
+        'Promocional': 'O tom deve ser promocional e direto, focado em criar um senso de urgência e destacar uma oferta.'
+    };
+    
+    const toneInstruction = toneInstructionMap[tone] || 'O tom deve ser profissional, mas amigável e convidativo.';
 
     let whatsappLink = '';
     if (profile.whatsappNumber) {
@@ -107,7 +115,7 @@ Ir Agora: https://maps.app.goo.gl/XYZ123`;
       4.  **CTAs e Hashtags:** Devem vir no final, após o corpo do texto, seguindo as regras abaixo.
 
       Instruções Gerais:
-      - O tom deve ser profissional, mas amigável e convidativo.
+      - ${toneInstruction}
       - O post deve ser conciso e direto, com no máximo 1500 caracteres.
       - ${ctaInstruction}
       - ${gbpLinkInstruction}

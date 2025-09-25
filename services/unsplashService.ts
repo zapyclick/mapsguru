@@ -1,6 +1,3 @@
-// FIX: Add a triple-slash directive to include Vite's client types, resolving the error
-// "Property 'env' does not exist on type 'ImportMeta'" by providing type definitions for import.meta.env.
-/// <reference types="vite/client" />
 
 import { UnsplashImage } from '../types/index.ts';
 
@@ -8,14 +5,16 @@ const API_BASE_URL = 'https://api.unsplash.com';
 
 // PROFESIONALIZADO: Lê a chave da API a partir das variáveis de ambiente.
 // O `as string` garante ao TypeScript que essa variável existirá.
-const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY as string;
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY as string;
+const UNSPLASH_PLACEHOLDER = "SUA_CHAVE_DE_ACESSO_DO_UNSPLASH";
+
 
 /**
  * Checks if the Unsplash API key has been configured by the user.
  * @returns {boolean} True if the key is configured, false otherwise.
  */
 export const isUnsplashConfigured = (): boolean => {
-    return !!UNSPLASH_ACCESS_KEY && !UNSPLASH_ACCESS_KEY.startsWith('COLE_AQUI');
+    return !!UNSPLASH_ACCESS_KEY && UNSPLASH_ACCESS_KEY !== UNSPLASH_PLACEHOLDER;
 };
 
 

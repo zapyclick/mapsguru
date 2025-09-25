@@ -14,10 +14,20 @@ interface PostCreatorProps {
   businessProfile: BusinessProfile;
 }
 
+type Tone = 'Amigável' | 'Profissional' | 'Divertido' | 'Promocional';
+
+const tones: { name: Tone; icon: string }[] = [
+    { name: 'Amigável', icon: 'sentiment_satisfied' },
+    { name: 'Profissional', icon: 'work' },
+    { name: 'Divertido', icon: 'celebration' },
+    { name: 'Promocional', icon: 'campaign' },
+];
+
 const PostCreator: React.FC<PostCreatorProps> = ({ post, onPostChange, onNewPost, businessProfile }) => {
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [selectedTone, setSelectedTone] = useState<Tone>('Amigável');
   const geminiConfigured = isGeminiConfigured();
   
   const handleInputChange = (field: keyof Post, value: string | null | ImageText | boolean) => {
@@ -36,7 +46,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, onPostChange, onNewPost
 
     setIsGeneratingText(true);
     try {
-        const generatedText = await generatePostText(post.keywords, businessProfile);
+        const generatedText = await generatePostText(post.keywords, selectedTone, businessProfile);
         handleInputChange('text', generatedText);
     } catch (error: any) {
         handleInputChange('text', `Ocorreu um erro: ${error.message}`);
@@ -103,10 +113,34 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, onPostChange, onNewPost
           </NeumorphicCardInset>
         </div>
 
+        {/* Tone Selector */}
+        <div className="space-y-2">
+          <label className="font-semibold block mb-2">
+            2. Escolha o Tom de Voz
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {tones.map(({ name, icon }) => (
+              <button
+                key={name}
+                onClick={() => setSelectedTone(name)}
+                className={`p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                  selectedTone === name
+                    ? 'shadow-light-neumorphic-inset dark:shadow-dark-neumorphic-inset text-blue-600 dark:text-blue-400'
+                    : 'shadow-light-neumorphic dark:shadow-dark-neumorphic hover:shadow-light-neumorphic-inset dark:hover:shadow-dark-neumorphic-inset'
+                }`}
+                aria-pressed={selectedTone === name}
+              >
+                <span className="material-symbols-outlined">{icon}</span>
+                <span className="text-sm font-medium">{name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Post Text Area */}
         <div className="space-y-2">
           <label htmlFor="post-text" className="font-semibold block mb-2">
-            2. Edite o Texto Gerado
+            3. Edite o Texto Gerado
           </label>
           <NeumorphicCardInset className="p-1 rounded-lg">
             <textarea
@@ -123,7 +157,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ post, onPostChange, onNewPost
         
         {/* Image Search and Editor */}
         <div className="space-y-4">
-          <label className="font-semibold block mb-2">3. Adicione uma Imagem</label>
+          <label className="font-semibold block mb-2">4. Adicione uma Imagem</label>
           {post.imageUrl ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-600 dark:text-slate-300">Imagem selecionada:</p>

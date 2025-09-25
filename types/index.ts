@@ -1,4 +1,18 @@
 
+
+// FIX: Define global types for process.env to align with the execution
+// environment and resolve TypeScript errors. This replaces the previous
+// declaration for `import.meta.env`.
+// FIX: Changed from redeclaring `var process` to augmenting the `NodeJS.ProcessEnv` interface to prevent "Cannot redeclare block-scoped variable" error.
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      readonly API_KEY: string;
+      readonly UNSPLASH_ACCESS_KEY: string;
+    }
+  }
+}
+
 // Represents the structure of an image object from the Unsplash API
 export interface UnsplashImage {
   id: string;
