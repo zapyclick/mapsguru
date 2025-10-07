@@ -1,24 +1,22 @@
 // src/services/geminiService.ts
 import { BusinessProfile } from '../types/index.ts';
 
-// A função de verificação agora é simples. Se as funções do backend existirem, está tudo ok.
-// Em um app real, poderíamos ter um endpoint de healthcheck, mas por agora, isso basta.
+// A função de verificação agora é simples. Se o deploy foi bem-sucedido, assumimos que está configurado.
 export const isGeminiConfigured = (): boolean => {
-    return true; // Se o deploy foi bem-sucedido, assumimos que está configurado.
+    return true;
 };
 
 /**
- * Gera o texto do post chamando nossa Netlify Function segura.
+ * Função genérica para chamar nossa Netlify Function segura.
+ * Todas as outras funções usarão esta para evitar repetição de código.
  * @param prompt - O prompt completo para a IA.
  * @returns Uma promise com o texto gerado.
  */
-export const generatePostText = async (prompt: string): Promise<string> => {
+const callGeminiAPI = async (prompt: string): Promise<string> => {
     try {
-        // Chama nossa função no backend. O Netlify a reconhece pelo caminho /.netlify/functions/
         const response = await fetch(`/.netlify/functions/generate-copy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // Enviamos o prompt no corpo da requisição. A chave NÃO VEM AQUI.
             body: JSON.stringify({ prompt }),
         });
 
@@ -37,15 +35,52 @@ export const generatePostText = async (prompt: string): Promise<string> => {
 };
 
 /**
- * Gera uma sugestão de busca de imagem usando a mesma função do Gemini.
- * @param postText - O texto do post para basear a busca.
- * @returns Uma promise com o termo de busca.
+ * Generates post text using Gemini API.
  */
-export const generateImageSearchQuery = async (postText: string): Promise<string> => {
-    const prompt = `Baseado no seguinte texto de post, crie um termo de busca curto e eficaz (2-4 palavras) em português para encontrar uma imagem de estoque relevante no Unsplash. Retorne apenas o termo de busca. Texto do Post: "${postText}"`;
-    return generatePostText(prompt);
+export const generatePostText = async (keywords: string, tone: string, profile: BusinessProfile): Promise<string> => {
+    const toneInstructionMap: Record<string, string> = {
+        'Amigável': 'O tom deve ser amigável e convidativo.',
+        'Profissional': 'O tom deve ser profissional e formal.',
+        'Divertido': 'O tom deve ser divertido e descontraído.',
+        'Promocional': 'O tom deve ser promocional e direto.'
+    };
+    const toneInstruction = toneInstructionMap[tone] || 'O tom deve ser profissional, mas amigável.';
+    const prompt = `Crie um post para o Google Business Profile para a empresa "${profile.name}" com base nas palavras-chave: "${keywords}". Instruções: ${toneInstruction}. O post deve ser conciso, com no máximo 1500 caracteres. Retorne apenas o texto do post.`;
+    return callGeminiAPI(prompt);
 };
 
-// As outras funções (generateImageTextSuggestion, etc.) podem ser reescritas
-// para usar a mesma lógica de chamar `generatePostText` com prompts diferentes.
-// Por enquanto, vamos focar no principal.
+/**
+ * Generates a search query for Unsplash based on the post text.
+ */
+export const generateImageSearchQuery = async (postText: string): Promise<string> => {
+    const prompt = `Baseado no texto: "${postText}", crie um termo de busca curto (2-4 palavras) para o Unsplash. Retorne apenas o termo.`;
+    return callGeminiAPI(prompt);
+};
+
+/**
+ * Generates a short, catchy phrase for an image overlay.
+ * A FUNÇÃO QUE ESTAVA FALTANDO!
+ */
+export const generateImageTextSuggestion = async (postText: string): Promise<string> => {
+    const prompt = `Baseado no texto: "${postText}", crie uma frase curta e de impacto (máximo 5 palavras) para sobrepor em uma imagem. Retorne apenas a frase.`;
+    return callGeminiAPI(prompt);
+};
+
+/**
+ * As outras funções também estão aqui, caso seu app precise delas.
+ */
+export const generateReviewResponse = async (reviewText: string, rating: number, profile: BusinessProfile): Promise<string> => {
+    let toneInstruction = rating >= 4 ? " caloroso e grato." : rating === 3 ? " equilibrado e profissional." : " sério, empático e profissional.";
+    const prompt = `Como gerente da "${profile.name}", responda à avaliação (Nota ${rating}/5): "${reviewText}". Instruções: Tom${toneInstruction} Agradeça. Retorne apenas a resposta.`;
+    return callGeminiAPI(prompt);
+};
+
+export const generateQnaResponse = async (question: string, profile: BusinessProfile): Promise<string> => {
+    const prompt = `Como gerente da "${profile.name}", responda à pergunta: "${question}". Instruções: Resposta clara, útil e amigável. Retorne apenas a resposta.`;
+    return callGeminiAPI(prompt);
+};
+
+export const generateProductDescription = async (productName: string, keywords: string, profile: BusinessProfile): Promise<string> => {
+    const prompt = `Como redator da "${profile.name}", crie uma descrição curta para o produto/serviço "${productName}" com as características: "${keywords}". Instruções: 2-3 frases, foco nos benefícios. Retorne apenas a descrição.`;
+    return callGeminiAPI(prompt);
+};
