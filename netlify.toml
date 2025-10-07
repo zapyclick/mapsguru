@@ -1,10 +1,13 @@
+# Configuração do build para o 
+// versão nova
 [build]
-  # Este comando pode ser diferente se você não usa Create React App
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+
 [[redirects]]
-  # Esta regra é opcional, mas boa para ter URLs de API mais limpas (ex: /api/generate-copy)
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
