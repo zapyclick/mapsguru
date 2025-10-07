@@ -1,7 +1,7 @@
 // netlify/functions/get-unsplash-images.js
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const query = event.queryStringParameters.query;
 
   if (!query) {
@@ -14,7 +14,6 @@ exports.handler = async (event) => {
   try {
     const response = await fetch(`https://api.unsplash.com/search/photos?query=${query}&per_page=6&orientation=landscape`, {
       headers: {
-        // A mágica acontece aqui! A chave vem do cofre do Netlify.
         'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`
       }
     });

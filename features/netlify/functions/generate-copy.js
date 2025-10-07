@@ -1,11 +1,9 @@
 // netlify/functions/generate-copy.js
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Inicializa a API com sua chave segura do cofre do Netlify
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-exports.handler = async (event) => {
-  // Pega o prompt que o frontend enviou
+export const handler = async (event) => {
   const { prompt } = JSON.parse(event.body);
 
   if (!prompt) {
