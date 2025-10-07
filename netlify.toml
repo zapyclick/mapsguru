@@ -1,7 +1,7 @@
 [build]
   # Este comando pode ser diferente se você não usa Create React App
   command = "npm run build"
-  publish = "build"
+  publish = "dist"
 
 [[redirects]]
   # Esta regra é opcional, mas boa para ter URLs de API mais limpas (ex: /api/generate-copy)
