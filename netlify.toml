@@ -1,5 +1,4 @@
-# Configuração do build para o 
-// versão nova
+# Configuração do build para o Netlify 2
 [build]
   command = "npm run build"
   publish = "dist"
